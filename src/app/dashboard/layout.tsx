@@ -28,20 +28,24 @@ export default function DashboardLayout({
   return (
     <NotificationsProvider>
       <UserProfileProvider>
-        <div className="flex min-h-screen flex-col md:flex-row bg-background">
+        <div className="flex min-h-screen bg-gray-50">
           <DashboardSidebar />
-          <AnimatePresence mode="wait">
-            <motion.main
-              key={pathname}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 10 }}
-              transition={{ duration: 0.3 }}
-              className="flex-1 p-4 md:p-8 overflow-hidden"
-            >
-              {children}
-            </motion.main>
-          </AnimatePresence>
+          <div className="flex-1 w-full md:ml-[280px] transition-all duration-300">
+            <AnimatePresence mode="wait">
+              <motion.main
+                key={pathname}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 10 }}
+                transition={{ duration: 0.3 }}
+                className="p-4 md:p-8 overflow-hidden"
+              >
+                <div className="max-w-7xl mx-auto w-full">
+                  {children}
+                </div>
+              </motion.main>
+            </AnimatePresence>
+          </div>
         </div>
       </UserProfileProvider>
     </NotificationsProvider>
