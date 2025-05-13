@@ -25,28 +25,88 @@
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
+    --background: 222.2 47% 11.2%;
     --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
+    --card: 222.2 47% 15.2%; /* Lighter card background */
     --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
+    --popover: 222.2 47% 15.2%;
     --popover-foreground: 210 40% 98%;
-    --primary: 231 97% 24%; /* #020E7C - Brand color */
+    --primary: 231 97% 24%;
     --primary-foreground: 210 40% 98%;
-    --secondary: 200 70% 14%; /* Darker blue for healthcare */
+    --secondary: 217.2 32.6% 17.5%;
     --secondary-foreground: 210 40% 98%;
     --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 200 70% 14%; /* Darker blue for healthcare */
+    --muted-foreground: 215 20.2% 75.1%; /* Lighter muted text */
+    --accent: 217.2 32.6% 17.5%;
     --accent-foreground: 210 40% 98%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
+    --border: 217.2 32.6% 25.5%; /* Lighter border color */
     --input: 217.2 32.6% 17.5%;
     --ring: 231 97% 24%;
   }
 }
 
+/* Dark mode specific styles */
+.dark {
+  /* Improve text contrast */
+  .text-muted-foreground {
+    color: hsl(215 20.2% 75.1%);
+  }
+
+  /* Improve card contrast */
+  .card {
+    background-color: hsl(222.2 47% 15.2%);
+    border: 1px solid hsl(217.2 32.6% 25.5%);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  }
+  h1,h2,h3,h4,h5,h6,p{
+    color: black;
+  }
+
+  /* Improve input contrast */
+  .input {
+    background-color: hsl(217.2 32.6% 17.5%);
+    border: 1px solid hsl(217.2 32.6% 25.5%);
+  }
+
+  /* Improve button contrast */
+  .button {
+    background-color: hsl(217.2 32.6% 17.5%);
+    border: 1px solid hsl(217.2 32.6% 25.5%);
+  }
+
+  /* Improve hover states */
+  .hover\:bg-accent:hover {
+    background-color: hsl(217.2 32.6% 25.5%);
+  }
+
+  /* Improve focus states */
+  .focus\:ring-2:focus {
+    --tw-ring-color: hsl(231 97% 24% / 0.4);
+  }
+
+  /* Improve scrollbar visibility */
+  ::-webkit-scrollbar-thumb {
+    background: hsl(217.2 32.6% 25.5%);
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(217.2 32.6% 30.5%);
+  }
+
+  /* Card hover effects in dark mode */
+  .card-hover:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+    border-color: hsl(217.2 32.6% 30.5%);
+  }
+
+  /* Table row hover effect in dark mode */
+  .table-row-hover:hover {
+    background-color: hsl(217.2 32.6% 20.5%);
+  }
+}
 
 /* Custom animations */
 @keyframes fadeIn {

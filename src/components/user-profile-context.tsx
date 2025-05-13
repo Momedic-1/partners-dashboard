@@ -6,8 +6,7 @@ interface UserProfile {
   name: string
   email: string
   phone: string
-  hospitalName: string
-  bio: string
+  organizationName: string
   avatarUrl: string
 }
 
@@ -23,8 +22,7 @@ export function UserProfileProvider({ children }: { children: ReactNode }) {
     name: "Dr. Jane Smith",
     email: "jane.smith@hospital.com",
     phone: "+234 812 345 6789",
-    hospitalName: "City General Hospital",
-    bio: "Leading healthcare provider with over 10 years of experience in patient care and management.",
+    organizationName: "City General Hospital",
     avatarUrl: "",
   })
 

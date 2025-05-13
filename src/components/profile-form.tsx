@@ -20,8 +20,7 @@ export function ProfileForm() {
     name: "",
     email: "",
     phone: "",
-    hospitalName: "",
-    bio: "",
+    organizationName: "",
     avatarUrl: "",
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -33,8 +32,7 @@ export function ProfileForm() {
         name: userProfile.name || "",
         email: userProfile.email || "",
         phone: userProfile.phone || "",
-        hospitalName: userProfile.hospitalName || "",
-        bio: userProfile.bio || "",
+        organizationName: userProfile.organizationName || "",
         avatarUrl: userProfile.avatarUrl || "",
       })
     }
@@ -177,35 +175,19 @@ export function ProfileForm() {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.4, duration: 0.5 }}
               >
-                <Label htmlFor="hospitalName">Hospital Name</Label>
+                <Label htmlFor="organiZationName">Organization Name</Label>
                 <Input
-                  id="hospitalName"
-                  name="hospitalName"
-                  placeholder="Enter your hospital name"
-                  value={formData.hospitalName}
+                  id="organiZationName"
+                  name="organiZationName"
+                  placeholder="Enter your Organization name"
+                  value={formData.organizationName}
                   onChange={handleChange}
                   disabled={isSubmitting}
                 />
               </motion.div>
             </div>
 
-            <motion.div
-              className="space-y-2"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5, duration: 0.5 }}
-            >
-              <Label htmlFor="bio">Bio</Label>
-              <Textarea
-                id="bio"
-                name="bio"
-                placeholder="Tell us a little about yourself or your hospital"
-                value={formData.bio}
-                onChange={handleChange}
-                disabled={isSubmitting}
-                rows={4}
-              />
-            </motion.div>
+          
           </CardContent>
                 <CardFooter>
                   <Button 

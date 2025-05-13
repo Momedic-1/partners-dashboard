@@ -22,23 +22,7 @@ export function DashboardStats() {
       trend: "up",
       icon: Calendar,
       description: "from last month",
-    },
-    {
-      title: "Avg. Session",
-      value: "24m",
-      change: "-3%",
-      trend: "down",
-      icon: Activity,
-      description: "from last month",
-    },
-    {
-      title: "Conversion Rate",
-      value: "12.5%",
-      change: "+2.4%",
-      trend: "up",
-      icon: TrendingUp,
-      description: "from last month",
-    },
+    }
   ]
 
   return (

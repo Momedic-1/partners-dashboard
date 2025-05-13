@@ -12,7 +12,7 @@ export default function ProfilePage() {
       transition={{ duration: 0.5 }}
       className="flex flex-col gap-6"
     >
-      <DashboardHeader heading="Profile" text="Manage your personal information and preferences" />
+      <DashboardHeader heading="Profile" text="Manage your Organization information and preferences" />
 
       <ProfileForm />
     </motion.div>
