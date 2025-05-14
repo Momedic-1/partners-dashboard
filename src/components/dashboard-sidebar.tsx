@@ -231,7 +231,7 @@ export function DashboardSidebar() {
                   className="flex-1 min-w-0"
                 >
                   <p className="text-sm font-semibold text-gray-900 truncate">{userProfile?.name || "Partner"}</p>
-                  <p className="text-xs text-gray-500 truncate">{userProfile?.hospitalName || "Hospital"}</p>
+                  <p className="text-xs text-gray-500 truncate">{userProfile?.organizationName || "Hospital"}</p>
                 </motion.div>
               )}
             </AnimatePresence>

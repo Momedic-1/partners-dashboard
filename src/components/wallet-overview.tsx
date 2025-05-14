@@ -2,18 +2,16 @@
 
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { ArrowUpRight, Wallet, TrendingUp, TrendingDown } from "lucide-react"
+import { ArrowUpRight, Wallet, TrendingUp } from "lucide-react"
 import Link from "next/link"
 import { motion } from "framer-motion"
 import { useTheme } from "next-themes"
 import { useState, useEffect } from "react"
-import { Progress } from "@/components/ui/progress"
 
 export function WalletOverview() {
   // This would be fetched from your API in a real application
   const walletBalance = 25000
   const pendingAmount = 1500
-  const totalSpent = 12500
 
   const { theme } = useTheme()
   const [mounted, setMounted] = useState(false)

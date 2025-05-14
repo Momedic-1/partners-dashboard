@@ -1,7 +1,7 @@
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Activity, Users, Calendar, TrendingUp } from "lucide-react"
+import {  Users, Calendar } from "lucide-react"
 import { motion } from "framer-motion"
 
 export function DashboardStats() {
