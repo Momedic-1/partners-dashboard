@@ -37,15 +37,27 @@ export function DashboardGreeting() {
     })
   }
 
+  if (!userProfile) {
+    return null // or a loading state
+  }
+
+  const fullName = `${userProfile.firstName}${userProfile.lastName ? ` ${userProfile.lastName}` : ""}`
+
   return (
     <Card className="bg-gradient-to-r from-primary/20 to-primary/5 border-none overflow-hidden">
       <CardContent className="p-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5 }}>
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5 }}
+          >
             <h2 className="text-2xl font-bold">
-              {greeting}, {userProfile?.name || "Partner"}
+              {greeting}, {fullName}
             </h2>
-            <p className="text-muted-foreground mt-1">Welcome to your partner dashboard</p>
+            <p className="text-muted-foreground mt-1">
+            Welcome to your partner dashboard
+            </p>
           </motion.div>
 
           <motion.div
