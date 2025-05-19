@@ -86,11 +86,16 @@
 
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+<<<<<<< HEAD
 import { ArrowUpRight, Wallet } from "lucide-react"
+=======
+import { ArrowUpRight, Wallet, TrendingUp } from "lucide-react"
+>>>>>>> dc62fef114062ef6ea82c3e4cdc027f223d1cd2f
 import Link from "next/link"
 import { motion } from "framer-motion"
 import { useTheme } from "next-themes"
 import { useState, useEffect } from "react"
+<<<<<<< HEAD
 import { useAuth } from "@/AuthContext"
 import axios from "@/lib/axios"
 import { baseUrl } from "@/env"
@@ -98,6 +103,13 @@ import { baseUrl } from "@/env"
 export function WalletOverview() {
   const { user, token } = useAuth()
   const orgId = user?.id
+=======
+
+export function WalletOverview() {
+  // This would be fetched from your API in a real application
+  const walletBalance = 25000
+  const pendingAmount = 1500
+>>>>>>> dc62fef114062ef6ea82c3e4cdc027f223d1cd2f
 
   const { theme } = useTheme()
   const [mounted, setMounted] = useState(false)
