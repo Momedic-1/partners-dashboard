@@ -5,8 +5,9 @@ import { DashboardHeader } from "@/components/dashboard-header"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { RecentTransactions } from "@/components/recent-transactions"
 import { RecentUsers } from "@/components/recent-users"
-import { DashboardStats } from "@/components/dashboard-stats"
+
 import { DashboardGreeting } from "@/components/dashboard-greeting"
+import { DashboardOverview } from "@/components/dashboard-overview"
 import { motion } from "framer-motion"
 
 export default function Dashboard() {
@@ -34,11 +35,12 @@ export default function Dashboard() {
       </motion.div>
 
       <motion.div variants={item}>
-        <WalletOverview />
+        <DashboardOverview/>
+        {/* <WalletOverview /> */}
       </motion.div>
 
       <motion.div variants={item}>
-        <DashboardStats />
+        {/* <DashboardStats /> */}
       </motion.div>
 
       <motion.div variants={item}>
