@@ -1,8 +1,11 @@
+
+
+
 "use client"
 
-import type React from "react"
-
 import { useState, useEffect } from "react"
+import axios from '@/lib/axios'
+import { baseUrl } from '@/env'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -12,31 +15,54 @@ import { toast } from "@/components/ui/use-toast"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Upload } from "lucide-react"
 import { motion } from "framer-motion"
-import { useUserProfile } from "@/components/user-profile-context"
+import { useAuth } from '@/AuthContext'
 
 export function ProfileForm() {
-  const { userProfile, updateUserProfile } = useUserProfile()
+  const { user, token } = useAuth()
+
   const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    phone: "",
+    adminFullName: "",
+    organizationEmail: "",
+    organizationPhone: "",
     organizationName: "",
-    avatarUrl: "",
+    
   })
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
 
+  // Fetch admin info
   useEffect(() => {
-    if (userProfile) {
-      setFormData({
-        name: userProfile.name || "",
-        email: userProfile.email || "",
-        phone: userProfile.phone || "",
-        organizationName: userProfile.organizationName || "",
-        avatarUrl: userProfile.avatarUrl || "",
-      })
+    const fetchAdminInfo = async () => {
+      if (!user || !token) {
+        setError('Not authenticated')
+        setLoading(false)
+        return
+      }
+      setLoading(true)
+      try {
+        const res = await axios.get(
+          `${baseUrl}/api/organization/${user.id}/admin-info`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        )
+        const data = res.data
+        setFormData({
+          adminFullName: data.adminFullName || "",
+          organizationEmail: data.organizationEmail || "",
+          organizationPhone: data.organizationPhone || "",
+          organizationName: data.organizationName || "",
+          
+        })
+      } catch (err: any) {
+        console.error('Error fetching admin info', err)
+        setError('Failed to load profile data')
+      } finally {
+        setLoading(false)
+      }
     }
-  }, [userProfile])
+    fetchAdminInfo()
+  }, [user, token])
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -48,27 +74,23 @@ export function ProfileForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
-
-    // Simulate API call
-    setTimeout(() => {
-      setIsSubmitting(false)
+    try {
+      await axios.put(
+        `${baseUrl}/api/organization/${user?.id}/admin-info`,
+        formData,
+        { headers: { Authorization: `Bearer ${token}` } }
+      )
       setIsSuccess(true)
-      
-      updateUserProfile(formData)
-      
-      toast({
-        title: "Profile updated",
-        description: "Your profile has been updated successfully.",
-      })
-      
-      // Reset success state after a delay
-      setTimeout(() => {
-        setIsSuccess(false)
-      }, 2000)
-    }, 1500)
+      toast({ title: 'Profile updated', description: 'Your profile has been updated successfully.' })
+    } catch (err: any) {
+      console.error('Error updating profile', err)
+      toast({ variant: 'destructive', title: 'Update failed', description: 'Unable to save changes.' })
+    } finally {
+      setIsSubmitting(false)
+      setTimeout(() => setIsSuccess(false), 2000)
+    }
   }
 
-  // Function to get initials from name
   const getInitials = (name: string) => {
     if (!name) return "U"
     return name
@@ -78,16 +100,20 @@ export function ProfileForm() {
       .toUpperCase()
   }
 
+  if (loading) {
+    return <div className="text-center p-6">Loading profile...</div>
+  }
+
+  if (error) {
+    return <div className="text-center p-6 text-red-500">{error}</div>
+  }
+
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-    >
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
       <Card>
         <CardHeader>
           <CardTitle>Profile Information</CardTitle>
-          <CardDescription>Update your personal information and preferences</CardDescription>
+
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-6">
@@ -100,104 +126,84 @@ export function ProfileForm() {
                   whileHover={{ scale: 1.05 }}
                 >
                   <Avatar className="h-24 w-24">
-                    <AvatarImage src={formData.avatarUrl || "/placeholder.svg"} alt={formData.name} />
+
                     <AvatarFallback className="bg-primary text-primary-foreground text-xl">
-                      {getInitials(formData.name)}
+                      {getInitials(formData.adminFullName)}
                     </AvatarFallback>
                   </Avatar>
                 </motion.div>
-                <Button 
-                  type="button" 
-                  size="icon" 
+                <Button
+                  type="button"
+                  size="icon"
                   className="absolute bottom-0 right-0 h-8 w-8 rounded-full bg-primary hover:bg-primary/90"
                 >
-                  <Upload className="h-4 w-4" />
+                  {/* <Upload className="h-4 w-4" /> */}
                 </Button>
               </div>
             </div>
 
             <div className="grid gap-6 md:grid-cols-2">
-              <motion.div
-                className="space-y-2"
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.1, duration: 0.5 }}
-              >
-                <Label htmlFor="name">Full Name</Label>
+              <div className="space-y-2">
+                <Label htmlFor="name"> Admin Full Name</Label>
                 <Input
                   id="name"
                   name="name"
                   placeholder="Enter your full name"
-                  value={formData.name}
+                  value={formData.adminFullName}
                   onChange={handleChange}
                   disabled={isSubmitting}
+                  readOnly
                 />
-              </motion.div>
+              </div>
 
-              <motion.div
-                className="space-y-2"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.2, duration: 0.5 }}
-              >
+              <div className="space-y-2">
                 <Label htmlFor="email">Email Address</Label>
                 <Input
                   id="email"
                   name="email"
                   type="email"
                   placeholder="Enter your email address"
-                  value={formData.email}
+                  value={formData.organizationEmail}
                   onChange={handleChange}
                   disabled={isSubmitting}
+                  readOnly
                 />
-              </motion.div>
+              </div>
 
-              <motion.div
-                className="space-y-2"
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.3, duration: 0.5 }}
-              >
+              <div className="space-y-2">
                 <Label htmlFor="phone">Phone Number</Label>
                 <Input
                   id="phone"
                   name="phone"
                   placeholder="Enter your phone number"
-                  value={formData.phone}
+                  value={formData.organizationPhone}
                   onChange={handleChange}
                   disabled={isSubmitting}
+                  readOnly
                 />
-              </motion.div>
+              </div>
 
-              <motion.div
-                className="space-y-2"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.4, duration: 0.5 }}
-              >
-                <Label htmlFor="organiZationName">Organization Name</Label>
+              <div className="space-y-2">
+                <Label htmlFor="organizationName">Organization Name</Label>
                 <Input
-                  id="organiZationName"
-                  name="organiZationName"
-                  placeholder="Enter your Organization name"
+                  id="organizationName"
+                  name="organizationName"
+                  placeholder="Enter your organization name"
                   value={formData.organizationName}
                   onChange={handleChange}
                   disabled={isSubmitting}
+                  readOnly
                 />
-              </motion.div>
+              </div>
             </div>
-
-          
           </CardContent>
-                <CardFooter>
-                  <Button 
-                    type="submit" 
-                    className="w-full button-hover-effect" 
-                    disabled={isSubmitting}
-                  >
-                    {isSubmitting ? "Saving..." : "Save Changes"}
-                  </Button>
-                </CardFooter>
-              </form>
-            </Card>
-          </motion.div>)}
+          {/* <CardFooter>
+            <Button type="submit" className="w-full" disabled={isSubmitting}>
+              {isSubmitting ? "Saving..." : "Save Changes"}
+            </Button>
+          </CardFooter> */}
+        </form>
+      </Card>
+    </motion.div>
+  )
+}

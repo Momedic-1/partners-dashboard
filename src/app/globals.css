@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@tailwind utilities;
+
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -23,7 +25,13 @@
     --ring: 231 97% 24%;
     --radius: 0.5rem; /* Reduced radius for a more professional look */
   }
-
+  :root {
+    --font-inter: 'Inter', sans-serif;
+  }
+  
+  body {
+    font-family: var(--font-inter);
+  }
   .dark {
     --background: 222.2 47% 11.2%;
     --foreground: 210 40% 98%;

@@ -132,7 +132,7 @@ export function DashboardSidebar() {
                   transition={{ duration: 0.2 }}
                   className="text-white"
                 >
-                  Hospital Portal
+                  Partner's Portal
                 </motion.span>
               )}
             </AnimatePresence>
@@ -215,9 +215,9 @@ export function DashboardSidebar() {
         <div className="mt-auto p-4 border-t bg-gray-50">
           <div className="flex items-center gap-3 mb-4">
             <Avatar className="h-10 w-10 border-2 border-[#020E7C]">
-              <AvatarImage src={userProfile?.avatarUrl || "/placeholder.svg"} alt={userProfile?.name} />
+              {/* <AvatarImage src={userProfile?.avatarUrl || "/placeholder.svg"} alt={userProfile?.f} /> */}
               <AvatarFallback className="bg-[#020E7C] text-white">
-                {userProfile?.name?.charAt(0) || "P"}
+                {userProfile?.firstName?.charAt(0) || "P"}
               </AvatarFallback>
             </Avatar>
 
@@ -230,8 +230,8 @@ export function DashboardSidebar() {
                   transition={{ duration: 0.2 }}
                   className="flex-1 min-w-0"
                 >
-                  <p className="text-sm font-semibold text-gray-900 truncate">{userProfile?.name || "Partner"}</p>
-                  <p className="text-xs text-gray-500 truncate">{userProfile?.hospitalName || "Hospital"}</p>
+                  <p className="text-sm font-semibold text-gray-900 truncate">{userProfile?.firstName || "Partner"}</p>
+                  <p className="text-xs text-gray-500 truncate">{ "Hospital"}</p>
                 </motion.div>
               )}
             </AnimatePresence>

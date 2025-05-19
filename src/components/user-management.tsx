@@ -1,21 +1,14 @@
+
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import axios from '@/lib/axios'
+import { baseUrl } from '@/env'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
 import { toast } from "@/components/ui/use-toast"
 import { Edit, MoreHorizontal, Search, Trash2, UserPlus } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
@@ -27,83 +20,78 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Badge } from "@/components/ui/badge"
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
+import { useAuth } from '@/AuthContext'
 
-// Mock user data
-const mockUsers = [
-  {
-    id: "U12345",
-    name: "John Smith",
-    email: "john.smith@example.com",
-    phone: "+234 812 345 6789",
-    dateAdded: "2023-04-15T10:30:00",
-    status: "active",
-    avatarUrl: "",
-  },
-  {
-    id: "U12346",
-    name: "Sarah Johnson",
-    email: "sarah.j@example.com",
-    phone: "+234 813 456 7890",
-    dateAdded: "2023-04-16T14:20:00",
-    status: "active",
-    avatarUrl: "",
-  },
-  {
-    id: "U12347",
-    name: "Michael Brown",
-    email: "m.brown@example.com",
-    phone: "+234 814 567 8901",
-    dateAdded: "2023-04-18T09:15:00",
-    status: "inactive",
-    avatarUrl: "",
-  },
-  {
-    id: "U12348",
-    name: "Emily Davis",
-    email: "emily.d@example.com",
-    phone: "+234 815 678 9012",
-    dateAdded: "2023-04-20T15:45:00",
-    status: "active",
-    avatarUrl: "",
-  },
-  {
-    id: "U12349",
-    name: "Robert Wilson",
-    email: "r.wilson@example.com",
-    phone: "+234 816 789 0123",
-    dateAdded: "2023-04-22T10:20:00",
-    status: "active",
-    avatarUrl: "",
-  },
-  {
-    id: "U12350",
-    name: "Jennifer Lee",
-    email: "j.lee@example.com",
-    phone: "+234 817 890 1234",
-    dateAdded: "2023-04-25T11:30:00",
-    status: "inactive",
-    avatarUrl: "",
-  },
-  {
-    id: "U12351",
-    name: "David Taylor",
-    email: "d.taylor@example.com",
-    phone: "+234 818 901 2345",
-    dateAdded: "2023-04-28T16:40:00",
-    status: "active",
-    avatarUrl: "",
-  },
-]
+interface User {
+  id: string
+  fullName: string
+  email: string
+  phone: string
+  dateUploaded: string
+  avatarUrl?: string
+}
+
+interface UserResponse {
+  content: User[]
+  totalPages: number
+  totalElements: number
+  size: number
+  number: number
+  first: boolean
+  last: boolean
+}
 
 export function UserManagement() {
-  const [users, setUsers] = useState(mockUsers)
+  const [users, setUsers] = useState<User[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
   const [userToDelete, setUserToDelete] = useState<string | null>(null)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize] = useState(10)
+  const [totalPages, setTotalPages] = useState(1)
+  const { user, token } = useAuth()
 
-  // Function to get initials from name
-  const getInitials = (name: string) => {
+  // Fetch users from API
+  useEffect(() => {
+    const fetchUsers = async () => {
+      setLoading(true)
+      setError(null)
+
+      if (!user || !token) {
+        setError('Not authenticated.')
+        setLoading(false)
+        return
+      }
+
+      try {
+        const orgId = user.id
+        const res = await axios.get<UserResponse>(
+          `${baseUrl}/api/organization/organization/${orgId}/users`,
+          {
+              params: { page: currentPage - 1, size: pageSize },
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        )
+        setUsers(res.data.content)
+        setTotalPages(res.data.totalPages)
+      } catch (err: any) {
+        console.error(err)
+        setError('Failed to load users data.')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchUsers()
+  }, [currentPage, pageSize, user, token])
+
+  const getInitials = (name: string | undefined) => {
+    // Check if name is defined before using split
+    if (!name) return "??"
+    
     return name
       .split(" ")
       .map((n) => n[0])
@@ -111,16 +99,8 @@ export function UserManagement() {
       .toUpperCase()
   }
 
-  const handleDeleteUser = () => {
-    if (userToDelete) {
-      setUsers(users.filter((user) => user.id !== userToDelete))
-      toast({
-        title: "User deleted",
-        description: "The user has been successfully deleted.",
-      })
-      setUserToDelete(null)
-      setIsDeleteDialogOpen(false)
-    }
+  const handlePageChange = (page: number) => {
+    if (page >= 1 && page <= totalPages) setCurrentPage(page)
   }
 
   const confirmDelete = (userId: string) => {
@@ -128,26 +108,34 @@ export function UserManagement() {
     setIsDeleteDialogOpen(true)
   }
 
-  const filteredUsers = users.filter(
-    (user) =>
-      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.phone.includes(searchTerm),
-  )
+  const handleDeleteUser = () => {
+    if (!userToDelete) return
+    // call delete endpoint if available, else just update UI
+    setUsers(users.filter((u) => u.id !== userToDelete))
+    toast({ title: 'User deleted', description: 'The user has been deleted.' })
+    setUserToDelete(null)
+    setIsDeleteDialogOpen(false)
+  }
 
+  const filtered = users.filter((u) =>
+    (u.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false) ||
+    (u.email?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false) ||
+    (u.phone?.includes(searchTerm) ?? false)
+  )
+  
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle>User Management</CardTitle>
-            <CardDescription>Manage your registered users</CardDescription>
-          </div>
-          <Button className="flex items-center gap-2">
-            <UserPlus className="h-4 w-4" />
+      <CardHeader className="flex flex-row items-center justify-between">
+           <div>
+             <CardTitle>User Management</CardTitle>
+             <CardDescription>Manage your registered users</CardDescription>
+           </div>
+           <Button className="flex items-center gap-2">
+             <UserPlus className="h-4 w-4" />
             <span>Add User</span>
           </Button>
-        </CardHeader>
+         </CardHeader>
         <CardContent>
           <div className="flex items-center mb-6">
             <div className="relative flex-1 max-w-sm">
@@ -161,120 +149,115 @@ export function UserManagement() {
             </div>
           </div>
 
-          <div className="rounded-md border overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>User</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Phone</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Date Added</TableHead>
-                  <TableHead className="w-[80px]">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredUsers.length === 0 ? (
+          {loading ? (
+            <div className="text-center py-8">Loading users...</div>
+          ) : error ? (
+            <div className="text-red-500 text-center py-4">{error}</div>
+          ) : (
+            <>            
+            <div className="rounded-md border overflow-hidden">
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8">
-                      <div className="flex flex-col items-center justify-center text-muted-foreground">
-                        <Search className="h-8 w-8 mb-2" />
-                        <p>No users found</p>
-                        <p className="text-sm">Try adjusting your search</p>
-                      </div>
-                    </TableCell>
+                    <TableHead>User</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Phone</TableHead>
+                    <TableHead>Date Added</TableHead>
+                    <TableHead className="w-[80px]">Actions</TableHead>
                   </TableRow>
-                ) : (
-                  <AnimatePresence>
-                    {filteredUsers.map((user, index) => (
-                      <motion.tr
-                        key={user.id}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -10 }}
-                        transition={{ duration: 0.3, delay: index * 0.05 }}
-                        className="table-row-hover"
-                      >
-                        <TableCell>
-                          <div className="flex items-center gap-3">
-                            <Avatar className="h-8 w-8">
-                              <AvatarImage src={user.avatarUrl || "/placeholder.svg"} alt={user.name} />
-                              <AvatarFallback className="bg-primary text-primary-foreground">
-                                {getInitials(user.name)}
-                              </AvatarFallback>
-                            </Avatar>
-                            <span className="font-medium">{user.name}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell>{user.email}</TableCell>
-                        <TableCell>{user.phone}</TableCell>
-                        <TableCell>
-                          <Badge
-                            variant="outline"
-                            className={
-                              user.status === "active"
-                                ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100"
-                                : "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100"
-                            }
-                          >
-                            {user.status.charAt(0).toUpperCase() + user.status.slice(1)}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>{new Date(user.dateAdded).toLocaleDateString()}</TableCell>
-                        <TableCell>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon">
-                                <MoreHorizontal className="h-4 w-4" />
-                                <span className="sr-only">Actions</span>
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem className="flex items-center gap-2">
-                                <Edit className="h-4 w-4" />
-                                <span>Edit User</span>
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                className="flex items-center gap-2 text-destructive focus:text-destructive"
-                                onClick={() => confirmDelete(user.id)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                                <span>Delete User</span>
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </motion.tr>
-                    ))}
-                  </AnimatePresence>
-                )}
-              </TableBody>
-            </Table>
-          </div>
+                </TableHeader>
+                <TableBody>
+                  {filtered.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center py-8">
+                        <div className="flex flex-col items-center text-muted-foreground">
+                          <Search className="h-8 w-8 mb-2" />
+                          <p>No users found</p>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    <AnimatePresence>
+                      {filtered.map((u, i) => (
+                        <motion.tr
+                          key={u.id}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -10 }}
+                          transition={{ duration: 0.3, delay: i * 0.05 }}
+                          className="table-row-hover"
+                        >
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <Avatar className="h-8 w-8">
+                                {/* <AvatarImage src={u.avatarUrl || "/placeholder.svg"} alt={u.fullName || "User"} />
+                                <AvatarFallback>{getInitials(u.fullName)}</AvatarFallback> */}
+                              </Avatar>
+                              <span className="font-medium">{u.fullName || "Unnamed User"}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>{u.email || "-"}</TableCell>
+                          <TableCell>{u.phone || "-"}</TableCell>
+                          <TableCell>
+                            {u.dateUploaded ? new Date(u.dateUploaded).toLocaleDateString() : "-"}
+                          </TableCell>
+                          <TableCell>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon">
+                                  <MoreHorizontal />
+                                  <span className="sr-only">Actions</span>
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem className="flex items-center gap-2">
+                                  <Edit /> Edit User
+                                </DropdownMenuItem>
+                                <DropdownMenuItem className="flex items-center gap-2 text-destructive" onClick={() => confirmDelete(u.id)}>
+                                  <Trash2 /> Delete User
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </motion.tr>
+                      ))}
+                    </AnimatePresence>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+
+            {/* Pagination */}
+            <div className="mt-4 flex justify-end gap-2">
+              <Button disabled={currentPage === 1} onClick={() => handlePageChange(currentPage - 1)}>Previous</Button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                <Button key={p} variant={p === currentPage ? 'secondary' : 'ghost'} onClick={() => handlePageChange(p)}>
+                  {p}
+                </Button>
+              ))}
+              <Button disabled={currentPage === totalPages} onClick={() => handlePageChange(currentPage + 1)}>Next</Button>
+            </div>
+            </>
+          )}
         </CardContent>
       </Card>
 
+      {/* Delete confirmation */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will permanently delete the user. This action cannot be undone.
-            </AlertDialogDescription>
+            <AlertDialogTitle>Confirm Deletion</AlertDialogTitle>
+            <AlertDialogDescription>This will permanently delete the user.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDeleteUser}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Delete
-            </AlertDialogAction>
+            <AlertDialogAction className="bg-destructive text-destructive-foreground" onClick={handleDeleteUser}>Delete</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </motion.div>
   )
 }
+
