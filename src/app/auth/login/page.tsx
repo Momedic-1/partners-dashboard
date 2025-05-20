@@ -9,7 +9,7 @@ const Login = () => {
       {/* Left side with dark blue background */}
       <div className="hidden md:flex flex-col justify-center items-center w-1/2  bg-blue-900 text-white p-8 rounded-l-lg">
         <h1 className="text-3xl font-bold mb-4 text-center">
-          Welcome Back!
+          Welcome Partner
         </h1>
         <p className="text-lg text-center max-w-sm">
           MedFair
