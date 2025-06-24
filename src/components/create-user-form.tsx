@@ -1,5 +1,3 @@
-
-
 // "use client"
 
 // import React, { useState } from "react"
@@ -190,24 +188,31 @@
 //   )
 // }
 
-"use client"
+"use client";
 
-import React, { useState } from "react"
-import axios from '@/lib/axios'
-import { baseUrl } from '@/env'
-import { useAuth } from '@/AuthContext'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { toast } from "@/components/ui/use-toast"
-import { motion } from "framer-motion"
-import { Check, User } from "lucide-react"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import React, { useState } from "react";
+import axios from "@/lib/axios";
+import { baseUrl } from "@/env";
+import { useAuth } from "@/AuthContext";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { toast } from "@/components/ui/use-toast";
+import { motion } from "framer-motion";
+import { Check, User } from "lucide-react";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 export function CreateUserForm() {
-  const { user, token } = useAuth()
-  
+  const { user, token } = useAuth();
+
   const initialFormState = {
     name: "",
     email: "",
@@ -215,53 +220,56 @@ export function CreateUserForm() {
     password: "",
     confirmedPassword: "",
     gender: "",
-  }
+  };
 
-  const [formData, setFormData] = useState(initialFormState)
-  const [errors, setErrors] = useState<Record<string, string>>({})
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isSuccess, setIsSuccess] = useState(false)
+  const [formData, setFormData] = useState(initialFormState);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
     if (errors[name]) {
-      setErrors((prev) => ({ ...prev, [name]: "" }))
+      setErrors((prev) => ({ ...prev, [name]: "" }));
     }
-  }
+  };
 
   const resetForm = () => {
-    setFormData(initialFormState)
-    setErrors({})
-  }
+    setFormData(initialFormState);
+    setErrors({});
+  };
 
   const validate = () => {
-    const newErrors: Record<string, string> = {}
-    if (!formData.name.trim()) newErrors.name = "Full name is required"
-    if (!formData.email.trim()) newErrors.email = "Email address is required"
-    if (!formData.phone.trim()) newErrors.phone = "Phone number is required"
-    if (!formData.password) newErrors.password = "Password is required"
-    if (formData.password !== formData.confirmedPassword) newErrors.confirmedPassword = "Passwords do not match"
-    if (!formData.gender) newErrors.gender = "Please select a gender"
-    return newErrors
-  }
+    const newErrors: Record<string, string> = {};
+    if (!formData.name.trim()) newErrors.name = "Full name is required";
+    if (!formData?.email.trim()) newErrors.email = "Email address is optional";
+    if (!formData.phone.trim()) newErrors.phone = "Phone number is required";
+    if (!formData.password) newErrors.password = "Password is required";
+    if (formData.password !== formData.confirmedPassword)
+      newErrors.confirmedPassword = "Passwords do not match";
+    if (!formData.gender) newErrors.gender = "Please select a gender";
+    return newErrors;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    const validationErrors = validate()
+    e.preventDefault();
+    const validationErrors = validate();
     if (Object.keys(validationErrors).length > 0) {
-      setErrors(validationErrors)
-      return
+      setErrors(validationErrors);
+      return;
     }
 
-    setIsSubmitting(true)
-    setErrors({})
+    setIsSubmitting(true);
+    setErrors({});
 
     try {
-      if (!user?.id || !token) throw new Error("Not authenticated")
+      if (!user?.id || !token) throw new Error("Not authenticated");
 
-      const [firstName, ...rest] = formData.name.trim().split(" ")
-      const lastName = rest.join(" ") || ""
+      const [firstName, ...rest] = formData.name.trim().split(" ");
+      const lastName = rest.join(" ") || "";
 
       await axios.post(
         `${baseUrl}/api/organization/createNewUser/${user.id}`,
@@ -275,46 +283,54 @@ export function CreateUserForm() {
           gender: formData.gender,
         },
         { headers: { Authorization: `Bearer ${token}` } }
-      )
+      );
 
-      setIsSuccess(true)
+      setIsSuccess(true);
       toast({
         title: "User created successfully",
         description: `${formData.name} has been added to your users.`,
-      })
+      });
     } catch (err: any) {
-      console.error(err)
-      toast({ variant: 'destructive', title: 'Creation failed', description: err.message || 'Unable to create user.' })
+      console.error(err);
+      toast({
+        variant: "destructive",
+        title: "Creation failed",
+        description: err.message || "Unable to create user.",
+      });
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
       if (isSuccess) {
         setTimeout(() => {
-          setIsSuccess(false)
-          resetForm()
-        }, 2000)
+          setIsSuccess(false);
+          resetForm();
+        }, 2000);
       }
     }
-  }
+  };
 
   const getInitials = (name: string) => {
-    if (!name) return "U"
+    if (!name) return "U";
     return name
       .split(" ")
       .map((n) => n[0])
       .join("")
-      .toUpperCase()
-  }
+      .toUpperCase();
+  };
 
   const formFields = [
     { id: "name", label: "Full Name", type: "text" },
     { id: "email", label: "Email Address", type: "email" },
     { id: "phone", label: "Phone Number", type: "tel" },
     { id: "password", label: "Password", type: "password" },
-    { id: "confirmedPassword", label: "Confirm Password", type: "password" }
-  ]
+    { id: "confirmedPassword", label: "Confirm Password", type: "password" },
+  ];
 
   return (
-    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+    >
       <Card>
         <CardHeader>
           <CardTitle>Create New User</CardTitle>
@@ -324,37 +340,65 @@ export function CreateUserForm() {
         <form onSubmit={handleSubmit} noValidate>
           <CardContent className="space-y-6">
             <div className="flex justify-center mb-4">
-              <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.5 }}>
+              <motion.div
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ duration: 0.5 }}
+              >
                 {/* <Avatar className="h-20 w-20">
                   <AvatarFallback className="bg-primary text-primary-foreground text-xl">
                     {isSuccess ? <Check className="h-8 w-8" /> : getInitials(formData.name)}
                   </AvatarFallback>
                 </Avatar> */}
                 <Avatar className="h-24 w-24 backdrop-blur-md bg-white/10 border border-white/20 shadow-xl rounded-full hover:scale-105 transition-transform duration-300">
-                    <AvatarFallback className="text-white text-2xl font-bold uppercase tracking-wide bg-black/40">
-                    {isSuccess ? <Check className="h-8 w-8" /> : getInitials(formData.name)}
-                    </AvatarFallback>
-                  </Avatar>
+                  <AvatarFallback className="text-white text-2xl font-bold uppercase tracking-wide bg-black/40">
+                    {isSuccess ? (
+                      <Check className="h-8 w-8" />
+                    ) : (
+                      getInitials(formData.name)
+                    )}
+                  </AvatarFallback>
+                </Avatar>
               </motion.div>
             </div>
 
             {formFields.map((field, idx) => (
-              <motion.div key={field.id} className="space-y-2" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.1, duration: 0.5 }}>
-                <Label htmlFor={field.id}>{field.label}</Label>
+              <motion.div
+                key={field.id}
+                className="space-y-2"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: idx * 0.1, duration: 0.5 }}
+              >
+                <Label htmlFor={field.id}>
+                  {field.label}
+                  {field.id === "email" && (
+                    <span className="text-red-500 text-sm ml-2">
+                      (optional)
+                    </span>
+                  )}
+                </Label>
                 <Input
                   id={field.id}
                   name={field.id}
                   type={field.type}
                   value={formData[field.id as keyof typeof formData]}
                   onChange={handleChange}
-                  required
+                  required={field.id !== "email"} // make email optional
                   disabled={isSubmitting || isSuccess}
                 />
-                {errors[field.id] && <p className="text-red-500 text-sm">{errors[field.id]}</p>}
+                {errors[field.id] && (
+                  <p className="text-red-500 text-sm">{errors[field.id]}</p>
+                )}
               </motion.div>
             ))}
 
-            <motion.div className="space-y-2" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: formFields.length * 0.1, duration: 0.5 }}>
+            <motion.div
+              className="space-y-2"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: formFields.length * 0.1, duration: 0.5 }}
+            >
               <Label htmlFor="gender">Gender</Label>
               <select
                 id="gender"
@@ -370,33 +414,63 @@ export function CreateUserForm() {
                 <option value="male">Male</option>
                 <option value="other">Other</option>
               </select>
-              {errors.gender && <p className="text-red-500 text-sm">{errors.gender}</p>}
+              {errors.gender && (
+                <p className="text-red-500 text-sm">{errors.gender}</p>
+              )}
             </motion.div>
           </CardContent>
 
           <CardFooter className="flex flex-col space-y-4">
-            <Button 
-              type="submit" 
-              className="w-full button-hover-effect" 
+            <Button
+              type="submit"
+              className="w-full button-hover-effect"
               disabled={isSubmitting || isSuccess}
             >
               {isSubmitting ? (
-                <><svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-primary-foreground" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" /></svg>Creating...</>
+                <>
+                  <svg
+                    className="animate-spin -ml-1 mr-2 h-4 w-4 text-primary-foreground"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    />
+                  </svg>
+                  Creating...
+                </>
               ) : isSuccess ? (
-                <><Check className="mr-2 h-4 w-4" />User Created</>
+                <>
+                  <Check className="mr-2 h-4 w-4" />
+                  User Created
+                </>
               ) : (
-                <><User className="mr-2 h-4 w-4" />Create User</>
+                <>
+                  <User className="mr-2 h-4 w-4" />
+                  Create User
+                </>
               )}
             </Button>
-            
+
             {isSuccess && (
-              <Button 
+              <Button
                 type="button"
                 variant="outline"
-                className="w-full" 
-                onClick={() => { 
-                  setIsSuccess(false)
-                  resetForm()
+                className="w-full"
+                onClick={() => {
+                  setIsSuccess(false);
+                  resetForm();
                 }}
               >
                 Create Another User
@@ -406,5 +480,5 @@ export function CreateUserForm() {
         </form>
       </Card>
     </motion.div>
-  )
+  );
 }

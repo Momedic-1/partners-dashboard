@@ -467,9 +467,9 @@ export function ConsultationReports() {
       return
     }
 
-    const orgId = user?.id
+    const organizationId = user?.id
     
-    if (!orgId) {
+    if (!organizationId) {
       setError('Organization ID not found. Please check user details.')
       setLoading(false)
       return
@@ -477,9 +477,9 @@ export function ConsultationReports() {
     
     try {
       const response = await axios.get<ConsultationResponse>(
-        `${baseUrl}/api/organization/consultations/full/${orgId}`,
+        `${baseUrl}/api/organization/consultations/full/{organizationId}`,
+
         {
-         
           headers: { Authorization: `Bearer ${token}` },
         }
       )

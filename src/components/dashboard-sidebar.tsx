@@ -20,7 +20,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useUserProfile } from "@/components/user-profile-context";
-import { useNotifications } from "@/components/notifications-context";
+// import { useNotifications } from "@/components/notifications-context";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Tooltip,
@@ -34,7 +34,7 @@ export function DashboardSidebar() {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const { userProfile } = useUserProfile();
-  const { unreadCount } = useNotifications();
+  // const { unreadCount } = useNotifications();
   const [isMounted, setIsMounted] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
@@ -97,12 +97,12 @@ export function DashboardSidebar() {
       icon: BarChart3,
       title: "Reports",
     },
-    {
-      href: "/dashboard/notifications",
-      icon: Bell,
-      title: "Notifications",
-      badge: unreadCount,
-    },
+    // {
+    //   href: "/dashboard/notifications",
+    //   icon: Bell,
+    //   title: "Notifications",
+    //   badge: unreadCount,
+    // },
     {
       href: "/dashboard/profile",
       icon: User,
