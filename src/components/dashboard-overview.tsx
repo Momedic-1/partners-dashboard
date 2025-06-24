@@ -14,7 +14,6 @@ export function DashboardOverview() {
   const orgId = user?.id
 
   const [walletBalance, setWalletBalance] = useState<number>(0)
-  const [totalSpent] = useState(12500)
   const [activeUsers, setActiveUsers] = useState<number>(0)
   const [completedConsultations, setCompletedConsultations] = useState<number>(0)
   const [loadingStats, setLoadingStats] = useState(true)
@@ -77,7 +76,7 @@ export function DashboardOverview() {
     },
     {
       title: "Consultations",
-      value: loadingStats ? '...' : completedConsultations.toString(),
+      value: loadingStats ? '...' : completedConsultations.toLocaleString(),
       icon: Calendar,
       link: '/dashboard/consultations',
       description: "completed",
