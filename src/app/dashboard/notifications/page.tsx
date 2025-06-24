@@ -1,8 +1,8 @@
-"use client"
+"use client";
 
-import { DashboardHeader } from "@/components/dashboard-header"
-import { NotificationsList } from "@/components/notifications-list"
-import { motion } from "framer-motion"
+import { DashboardHeader } from "@/components/dashboard-header";
+import { NotificationsList } from "@/components/notifications-list";
+import { motion } from "framer-motion";
 
 export default function NotificationsPage() {
   return (
@@ -12,9 +12,12 @@ export default function NotificationsPage() {
       transition={{ duration: 0.5 }}
       className="flex flex-col gap-6"
     >
-      <DashboardHeader heading="Notifications" text="Stay updated with important alerts and messages" />
+      <DashboardHeader
+        heading="Notifications"
+        text="Stay updated with important alerts and messages"
+      />
 
       <NotificationsList />
     </motion.div>
-  )
+  );
 }
