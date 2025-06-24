@@ -1,9 +1,9 @@
 "use client"
 
-import { WalletOverview } from "@/components/wallet-overview"
+// import { WalletOverview } from "@/components/wallet-overview"
 import { DashboardHeader } from "@/components/dashboard-header"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { RecentTransactions } from "@/components/recent-transactions"
+// import { RecentTransactions } from "@/components/recent-transactions"
 import { RecentUsers } from "@/components/recent-users"
 
 import { DashboardGreeting } from "@/components/dashboard-greeting"
@@ -44,14 +44,14 @@ export default function Dashboard() {
       </motion.div>
 
       <motion.div variants={item}>
-        <Tabs defaultValue="transactions" className="space-y-4">
+        <Tabs defaultValue="users" className="space-y-4">
           <TabsList className="grid w-full md:w-auto md:inline-flex grid-cols-2 md:grid-cols-none">
-            <TabsTrigger value="transactions">Recent Transactions</TabsTrigger>
+            {/* <TabsTrigger value="transactions">Recent Transactions</TabsTrigger> */}
             <TabsTrigger value="users">Recent Users</TabsTrigger>
           </TabsList>
-          <TabsContent value="transactions" className="space-y-4">
+          {/* <TabsContent value="transactions" className="space-y-4">
             <RecentTransactions />
-          </TabsContent>
+          </TabsContent> */}
           <TabsContent value="users" className="space-y-4">
             <RecentUsers />
           </TabsContent>

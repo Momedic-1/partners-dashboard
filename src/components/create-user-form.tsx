@@ -268,7 +268,7 @@ export function CreateUserForm() {
         {
           firstName,
           lastName,
-          email: formData.email,
+          email: formData?.email,
           phoneNumber: formData.phone,
           password: formData.password,
           confirmedPassword: formData.confirmedPassword,
@@ -325,11 +325,16 @@ export function CreateUserForm() {
           <CardContent className="space-y-6">
             <div className="flex justify-center mb-4">
               <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.5 }}>
-                <Avatar className="h-20 w-20">
+                {/* <Avatar className="h-20 w-20">
                   <AvatarFallback className="bg-primary text-primary-foreground text-xl">
                     {isSuccess ? <Check className="h-8 w-8" /> : getInitials(formData.name)}
                   </AvatarFallback>
-                </Avatar>
+                </Avatar> */}
+                <Avatar className="h-24 w-24 backdrop-blur-md bg-white/10 border border-white/20 shadow-xl rounded-full hover:scale-105 transition-transform duration-300">
+                    <AvatarFallback className="text-white text-2xl font-bold uppercase tracking-wide bg-black/40">
+                    {isSuccess ? <Check className="h-8 w-8" /> : getInitials(formData.name)}
+                    </AvatarFallback>
+                  </Avatar>
               </motion.div>
             </div>
 
