@@ -20,7 +20,6 @@ const Login = () => {
       <div className="w-full md:w-1/2 flex items-center justify-center bg-[#FAF8F8] p-8 rounded-r-lg">
         <div className="w-full max-w-md">
           <div className="flex items-center space-x-2 md:hidden mb-4">
-           
           </div>
           <h2 className="text-2xl font-bold mb-6">Sign In</h2>
 
