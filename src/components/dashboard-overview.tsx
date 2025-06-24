@@ -1,6 +1,3 @@
-
-
-
 "use client"
 
 import { useState, useEffect } from "react"
@@ -73,7 +70,7 @@ export function DashboardOverview() {
   const stats = [
     {
       title: "Active Users",
-      value: loadingStats ? '...' : activeUsers.toString(),
+      value: loadingStats ? '...' : activeUsers.toLocaleString(),
       icon: Users,
       link: '/dashboard/users',
       description: "current",
@@ -103,7 +100,7 @@ export function DashboardOverview() {
           </CardContent>
           <CardFooter className="mt-auto">
             <Link href="/dashboard/wallet" passHref className="w-full">
-              <Button variant="outline" size="sm" className="w-full">
+              <Button variant="outline" size="sm" className="cursor-pointer w-full">
                 Fund Wallet
                 <ArrowUpRight className="ml-2 h-4 w-4" />
               </Button>
@@ -125,7 +122,7 @@ export function DashboardOverview() {
             </CardContent>
             <CardFooter className="mt-auto">
               <Link href={stat.link} passHref className="w-full">
-                <Button variant="outline" size="sm" className="w-full">
+                <Button variant="outline" size="sm" className="cursor-pointer w-full">
                   View {stat.title}
                   <ArrowUpRight className="ml-2 h-4 w-4" />
                 </Button>

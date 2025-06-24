@@ -1,8 +1,8 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   BarChart3,
   Bell,
@@ -15,52 +15,66 @@ import {
   Users,
   Wallet,
   Menu,
-} from "lucide-react"
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { useUserProfile } from "@/components/user-profile-context"
-import { useNotifications } from "@/components/notifications-context"
-import { motion, AnimatePresence } from "framer-motion"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { Badge } from "@/components/ui/badge"
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useUserProfile } from "@/components/user-profile-context";
+import { useNotifications } from "@/components/notifications-context";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Badge } from "@/components/ui/badge";
 
 export function DashboardSidebar() {
-  const pathname = usePathname()
-  const [isCollapsed, setIsCollapsed] = useState(false)
-  const { userProfile } = useUserProfile()
-  const { unreadCount } = useNotifications()
-  const [isMounted, setIsMounted] = useState(false)
-  const [isMobile, setIsMobile] = useState(false)
+  const pathname = usePathname();
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const { userProfile } = useUserProfile();
+  const { unreadCount } = useNotifications();
+  const [isMounted, setIsMounted] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
-    setIsMounted(true)
+    setIsMounted(true);
 
     // Check if sidebar state is saved in localStorage
-    const savedState = localStorage.getItem("sidebarCollapsed")
+    const savedState = localStorage.getItem("sidebarCollapsed");
     if (savedState) {
-      setIsCollapsed(savedState === "true")
+      setIsCollapsed(savedState === "true");
     }
 
     // Handle mobile detection and sidebar state
     const handleResize = () => {
-      const mobile = window.innerWidth < 768
-      setIsMobile(mobile)
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
       if (mobile) {
-        setIsCollapsed(true)
+        setIsCollapsed(true);
       }
-    }
+    };
 
-    handleResize()
-    window.addEventListener("resize", handleResize)
-    return () => window.removeEventListener("resize", handleResize)
-  }, [])
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  const handleLogout = () => {
+    // Clear stored user data
+    localStorage.removeItem("userData");
+    localStorage.removeItem("token"); // if you're storing a token
+
+    // Redirect to login page
+    window.location.href = "/auth/login";
+  };
 
   const toggleSidebar = () => {
-    const newState = !isCollapsed
-    setIsCollapsed(newState)
-    localStorage.setItem("sidebarCollapsed", String(newState))
-  }
+    const newState = !isCollapsed;
+    setIsCollapsed(newState);
+    localStorage.setItem("sidebarCollapsed", String(newState));
+  };
 
   const routes = [
     {
@@ -94,9 +108,9 @@ export function DashboardSidebar() {
       icon: User,
       title: "Profile",
     },
-  ]
+  ];
 
-  if (!isMounted) return null
+  if (!isMounted) return null;
 
   return (
     <>
@@ -110,9 +124,9 @@ export function DashboardSidebar() {
 
       <motion.div
         initial={false}
-        animate={{ 
+        animate={{
           width: isCollapsed ? (isMobile ? 0 : 80) : 280,
-          x: isCollapsed && isMobile ? -280 : 0
+          x: isCollapsed && isMobile ? -280 : 0,
         }}
         transition={{ duration: 0.3, ease: "easeInOut" }}
         className={cn(
@@ -121,7 +135,10 @@ export function DashboardSidebar() {
         )}
       >
         <div className="flex h-16 items-center border-b px-4 bg-[#020E7C]">
-          <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
+          <Link
+            href="/dashboard"
+            className="flex items-center gap-2 font-semibold"
+          >
             <FileSpreadsheet className="h-6 w-6 text-white" />
             <AnimatePresence>
               {!isCollapsed && (
@@ -132,18 +149,22 @@ export function DashboardSidebar() {
                   transition={{ duration: 0.2 }}
                   className="text-white"
                 >
-                  Partner's Portal
+                  Partner&lsquo;s Portal
                 </motion.span>
               )}
             </AnimatePresence>
           </Link>
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="ml-auto hover:bg-white/10 text-white" 
+          <Button
+            variant="ghost"
+            size="icon"
+            className="ml-auto hover:bg-white/10 text-white"
             onClick={toggleSidebar}
           >
-            {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+            {isCollapsed ? (
+              <ChevronRight className="h-4 w-4" />
+            ) : (
+              <ChevronLeft className="h-4 w-4" />
+            )}
           </Button>
         </div>
 
@@ -160,7 +181,7 @@ export function DashboardSidebar() {
                         pathname === route.href
                           ? "bg-[#020E7C] text-white"
                           : "text-gray-600 hover:bg-gray-50 hover:text-[#020E7C]",
-                        "relative",
+                        "relative"
                       )}
                       onClick={() => isMobile && toggleSidebar()}
                     >
@@ -169,7 +190,7 @@ export function DashboardSidebar() {
                           "h-5 w-5",
                           pathname === route.href
                             ? "text-white"
-                            : "text-gray-500 group-hover:text-[#020E7C]",
+                            : "text-gray-500 group-hover:text-[#020E7C]"
                         )}
                       />
 
@@ -193,7 +214,7 @@ export function DashboardSidebar() {
                             "ml-auto",
                             pathname === route.href
                               ? "bg-white text-[#020E7C]"
-                              : "bg-[#020E7C] text-white",
+                              : "bg-[#020E7C] text-white"
                           )}
                         >
                           {route.badge}
@@ -202,7 +223,10 @@ export function DashboardSidebar() {
                     </Link>
                   </TooltipTrigger>
                   {isCollapsed && !isMobile && (
-                    <TooltipContent side="right" className="bg-[#020E7C] text-white">
+                    <TooltipContent
+                      side="right"
+                      className="bg-[#020E7C] text-white"
+                    >
                       <p>{route.title}</p>
                     </TooltipContent>
                   )}
@@ -215,8 +239,8 @@ export function DashboardSidebar() {
         <div className="mt-auto p-4 border-t bg-gray-50">
           <div className="flex items-center gap-3 mb-4">
             <Avatar className="h-10 w-10 border-2 border-[#020E7C]">
-              {/* <AvatarImage src={userProfile?.avatarUrl || "/placeholder.svg"} alt={userProfile?.f} /> */}
-              <AvatarFallback className="bg-[#020E7C] text-white">
+            {/* <AvatarImage src={userProfile?.avatarUrl || "/placeholder.svg"} alt={userProfile?.f} /> */}
+            <AvatarFallback className="bg-[#020E7C] text-white">
                 {userProfile?.firstName?.charAt(0) || "P"}
               </AvatarFallback>
             </Avatar>
@@ -230,8 +254,10 @@ export function DashboardSidebar() {
                   transition={{ duration: 0.2 }}
                   className="flex-1 min-w-0"
                 >
-                  <p className="text-sm font-semibold text-gray-900 truncate">{userProfile?.firstName || "Partner"}</p>
-                  <p className="text-xs text-gray-500 truncate">{ "Hospital"}</p>
+                  <p className="text-sm font-semibold text-gray-900 truncate">
+                    {userProfile?.firstName || "Partner"}
+                  </p>
+                  {/* <p className="text-xs text-gray-500 truncate">{"Hospital"}</p> */}
                 </motion.div>
               )}
             </AnimatePresence>
@@ -243,10 +269,11 @@ export function DashboardSidebar() {
                 <Button
                   variant="outline"
                   className={cn(
-                    "w-full justify-start border-[#020E7C] text-[#020E7C] hover:bg-[#020E7C] hover:text-white",
+                    "w-full justify-start border-[#020E7C] text-[#020E7C] hover:bg-[#020E7C] hover:text-white cursor-pointer",
                     isCollapsed && "justify-center px-0"
                   )}
                   size="sm"
+                  onClick={handleLogout} // 👈 Add this line
                 >
                   <LogOut className="mr-2 h-4 w-4" />
                   <AnimatePresence>
@@ -264,7 +291,10 @@ export function DashboardSidebar() {
                 </Button>
               </TooltipTrigger>
               {isCollapsed && !isMobile && (
-                <TooltipContent side="right" className="bg-[#020E7C] text-white">
+                <TooltipContent
+                  side="right"
+                  className="bg-[#020E7C] text-white"
+                >
                   <p>Log out</p>
                 </TooltipContent>
               )}
@@ -285,5 +315,5 @@ export function DashboardSidebar() {
         </Button>
       )}
     </>
-  )
+  );
 }
