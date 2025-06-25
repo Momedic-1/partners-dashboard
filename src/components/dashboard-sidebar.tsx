@@ -208,7 +208,7 @@ export function DashboardSidebar() {
                         )}
                       </AnimatePresence>
 
-                      {route.badge && route.badge > 0 && (
+                      {/* {route.badge && route.badge > 0 && (
                         <Badge
                           className={cn(
                             "ml-auto",
@@ -219,7 +219,7 @@ export function DashboardSidebar() {
                         >
                           {route.badge}
                         </Badge>
-                      )}
+                      )} */}
                     </Link>
                   </TooltipTrigger>
                   {isCollapsed && !isMobile && (
