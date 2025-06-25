@@ -91,7 +91,7 @@ export function DashboardOverview() {
       title: "Consultations",
       value: loadingStats ? "..." : completedConsultations.toLocaleString(),
       icon: Calendar,
-      link: "/dashboard/consultations",
+      link: "/dashboard/reports",
       description: "completed",
     },
   ];
