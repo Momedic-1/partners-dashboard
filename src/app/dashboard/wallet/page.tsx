@@ -1,10 +1,10 @@
 "use client"
 
 import { DashboardHeader } from "@/components/dashboard-header"
-import { FundWalletForm } from "@/components/fund-wallet-form"
+// import { FundWalletForm } from "@/components/fund-wallet-form"
 // import { TransactionHistory } from "@/components/transaction-history"
 import { WalletOverview } from "@/components/wallet-overview"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+// import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { motion } from "framer-motion"
 
 export default function WalletPage() {
@@ -31,20 +31,20 @@ export default function WalletPage() {
         <WalletOverview />
       </motion.div>
 
-      <motion.div variants={item}>
+      {/* <motion.div variants={item}>
         <Tabs defaultValue="fund" className="space-y-4">
           <TabsList className="grid w-full md:w-auto md:inline-flex grid-cols-2 md:grid-cols-none">
             <TabsTrigger className="cursor-pointer" value="fund">Fund Wallet</TabsTrigger>
-            {/* <TabsTrigger className="cursor-pointer" value="history">Transaction History</TabsTrigger> */}
+            <TabsTrigger className="cursor-pointer" value="history">Transaction History</TabsTrigger>
           </TabsList>
           <TabsContent value="fund" className="space-y-4">
             <FundWalletForm />
           </TabsContent>
-          {/* <TabsContent value="history" className="space-y-4">
+          <TabsContent value="history" className="space-y-4">
             <TransactionHistory />
-          </TabsContent> */}
+          </TabsContent>
         </Tabs>
-      </motion.div>
+      </motion.div> */}
     </motion.div>
   )
 }

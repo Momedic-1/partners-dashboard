@@ -4,13 +4,13 @@ import type React from "react"
 
 import { useState, useEffect } from "react"
 import { ModeToggle } from "@/components/mode-toggle"
-import { Bell, Search } from "lucide-react"
+import { Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { useNotifications } from "@/components/notifications-context"
+// import { Badge } from "@/components/ui/badge"
+// import { useNotifications } from "@/components/notifications-context"
 import { motion } from "framer-motion"
-import { useRouter } from "next/navigation"
+// import { useRouter } from "next/navigation"
 
 interface DashboardHeaderProps {
   heading: string
@@ -19,10 +19,10 @@ interface DashboardHeaderProps {
 }
 
 export function DashboardHeader({ heading, text, children }: DashboardHeaderProps) {
-  const { unreadCount } = useNotifications()
+  // const { unreadCount } = useNotifications()
   const [showSearch, setShowSearch] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
-  const router = useRouter()
+  // const router = useRouter()
   const [isMounted, setIsMounted] = useState(false)
 
   useEffect(() => {
@@ -36,9 +36,9 @@ export function DashboardHeader({ heading, text, children }: DashboardHeaderProp
     }
   }
 
-  const handleNotificationsClick = () => {
-    router.push("/dashboard/notifications")
-  }
+  // const handleNotificationsClick = () => {
+  //   router.push("/dashboard/notifications")
+  // }
 
   if (!isMounted) return null
 
@@ -61,17 +61,17 @@ export function DashboardHeader({ heading, text, children }: DashboardHeaderProp
           className="flex items-center gap-2"
         >
           {children}
-          <Button variant="outline" size="icon" onClick={toggleSearch}>
+          <Button className="cursor-pointer" variant="outline" size="icon" onClick={toggleSearch}>
             <Search className="h-[1.2rem] w-[1.2rem]" />
           </Button>
-          <Button variant="outline" size="icon" onClick={handleNotificationsClick} className="relative">
+          {/* <Button variant="outline" size="icon" onClick={handleNotificationsClick} className="relative">
             <Bell className="h-[1.2rem] w-[1.2rem]" />
             {unreadCount > 0 && (
               <Badge className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center badge-pulse bg-primary text-primary-foreground">
                 {unreadCount}
               </Badge>
             )}
-          </Button>
+          </Button> */}
           <ModeToggle />
         </motion.div>
       </div>

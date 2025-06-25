@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowUpRight, Wallet } from "lucide-react";
-import cardBg from "../assets/money-256315_640.jpg";
+import cardBg from "../assets/card.jpg";
 import walletBg from "../assets/account.jpg";
 import { motion, AnimatePresence } from "framer-motion";
 // import { useTheme } from "next-themes";
@@ -99,7 +99,7 @@ export function WalletOverview() {
   // };
 
   return (
-    <div className="grid gap-4 md:grid-cols-2">
+    <div className="grid grid-rows-2 gap-4">
       <motion.div
         initial="hidden"
         animate="visible"
@@ -117,7 +117,7 @@ export function WalletOverview() {
           style={{ backgroundImage: `url(${cardBg.src})` }}
           className="h-full bg-cover bg-center p-1"
         >
-          <Card className="overflow-hidden text-[#f3f3f3]">
+          <Card className="overflow-hidden text-[#f3f3f3] h-[250px]">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-gradient-to-r from-primary/10 to-primary/5">
               <CardTitle className="text-base font-medium">
                 Wallet Balance
