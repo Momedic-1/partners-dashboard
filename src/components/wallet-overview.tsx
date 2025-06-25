@@ -21,56 +21,27 @@ import { baseUrl } from "@/env";
 export function WalletOverview() {
   const { user, token } = useAuth();
   const orgId = user?.id;
-  // const { theme } = useTheme();
 
-  const [mounted, setMounted] = useState(false);
-  const [walletBalance, setWalletBalance] = useState<number | null>(null);
+  const [walletBalance, setWalletBalance] = useState<number>(0);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
-  const [totalPaid, setTotalPaid] = useState<number | null>(null);
-
-  // Simulate fetching total amount paid
-  useEffect(() => {
-    async function fetchTotalPaid() {
-      if (!token || !orgId) return;
-      try {
-        const response = await axios.get<{ totalPaid: number }>(
-          `${baseUrl}/api/organization/${orgId}/total-paid`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-        setTotalPaid(response.data.totalPaid ?? 0);
-      } catch (err) {
-        console.error("Error fetching total paid:", err);
-        setTotalPaid(0);
-      }
-    }
-    fetchTotalPaid();
-  }, [token, orgId]);
 
   useEffect(() => {
-    setMounted(true);
-  }, []);
+    if (!token || !orgId) return;
 
-  useEffect(() => {
     async function fetchBalance() {
-      if (!token || !orgId) {
-        setLoading(false);
-        return;
-      }
+      setLoading(true);
       try {
-        const response = await axios.get<{ balance: number }>(
+        const response = await axios.get(
           `${baseUrl}/api/organization/${orgId}/balance`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }
         );
-        setWalletBalance(response.data.balance ?? 0);
-      } catch (err) {
-        console.error("Error fetching wallet balance:", err);
-        setError("Failed to load balance");
+        console.log("Balance fetched:", response.data);
+        setWalletBalance(response.data ?? 0);
+      } catch (error) {
+        console.error("Error fetching balance:", error);
         setWalletBalance(0);
       } finally {
         setLoading(false);
@@ -80,26 +51,9 @@ export function WalletOverview() {
     fetchBalance();
   }, [token, orgId]);
 
-  if (!mounted) return null;
-
-  // const cardVariants = {
-  //   hidden: { opacity: 0, y: 20 },
-  //   visible: {
-  //     opacity: 1,
-  //     y: 0,
-  //     transition: { duration: 0.5 },
-  //   },
-  //   hover: {
-  //     y: -5,
-  //     boxShadow:
-  //       theme === "dark"
-  //         ? "0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.2)"
-  //         : "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
-  //   },
-  // };
-
   return (
-    <div className="grid grid-rows-2 gap-4">
+    <div className="grid grid-cols-1 gap-4">
+      {/* Wallet Balance Card */}
       <motion.div
         initial="hidden"
         animate="visible"
@@ -125,18 +79,11 @@ export function WalletOverview() {
               <Wallet className="h-4 w-4 text-primary" />
             </CardHeader>
             <CardContent className="pt-6">
-              <motion.div
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ delay: 0.2, duration: 0.5 }}
-                className="text-3xl font-bold"
-              >
-                {loading
-                  ? "Loading..."
-                  : `₦${(walletBalance ?? 0).toLocaleString()}`}
-              </motion.div>
+              <div className="text-3xl font-bold">
+                {loading ? "Loading..." : `₦${walletBalance.toLocaleString()}`}
+              </div>
               <p className="text-sm text-muted-foreground mt-1">
-                {error ?? "Available for consultations"}
+                Available for consultations
               </p>
             </CardContent>
             <CardFooter>
@@ -153,7 +100,49 @@ export function WalletOverview() {
           </Card>
         </motion.div>
       </motion.div>
-
+      
+      <motion.div
+        initial="hidden"
+        animate="visible"
+        whileHover="hover"
+        variants={{
+          hidden: { opacity: 0, y: 20 },
+          visible: { opacity: 1, y: 0, transition: { duration: 0.5 } },
+          hover: { y: -5 },
+        }}
+        className="overflow-hidden rounded-xl h-full"
+      >
+        <motion.div
+          whileHover={{ backgroundPositionY: "-20px" }}
+          transition={{ duration: 0.5, ease: "easeInOut" }}
+          style={{ backgroundImage: `url(${walletBg.src})` }}
+          className="h-full bg-cover bg-center p-1"
+        >
+          <Card className="overflow-hidden h-full flex flex-col justify-between text-white">
+            <div>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-gradient-to-r from-primary/10 to-primary/5">
+                <CardTitle className="text-base font-medium">
+                  Total Amount Paid
+                </CardTitle>
+                <Wallet className="h-4 w-4 text-primary" />
+              </CardHeader>
+              <CardContent className="pt-6">
+                <motion.div
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ delay: 0.2, duration: 0.5 }}
+                  className="text-3xl font-bold"
+                >
+                  {loading ? "Loading..." : ""}
+                </motion.div>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Total payments made for all consultations
+                </p>
+              </CardContent>
+            </div>
+          </Card>
+        </motion.div>
+      </motion.div>
       <AnimatePresence>
         {showModal && (
           <motion.div
@@ -206,51 +195,6 @@ export function WalletOverview() {
           </motion.div>
         )}
       </AnimatePresence>
-
-      <motion.div
-        initial="hidden"
-        animate="visible"
-        whileHover="hover"
-        variants={{
-          hidden: { opacity: 0, y: 20 },
-          visible: { opacity: 1, y: 0, transition: { duration: 0.5 } },
-          hover: { y: -5 },
-        }}
-        className="overflow-hidden rounded-xl h-full"
-      >
-        <motion.div
-          whileHover={{ backgroundPositionY: "-20px" }}
-          transition={{ duration: 0.5, ease: "easeInOut" }}
-          style={{ backgroundImage: `url(${walletBg.src})` }}
-          className="h-full bg-cover bg-center p-1"
-        >
-          <Card className="overflow-hidden h-full flex flex-col justify-between text-white">
-            <div>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-gradient-to-r from-primary/10 to-primary/5">
-                <CardTitle className="text-base font-medium">
-                  Total Amount Paid
-                </CardTitle>
-                <Wallet className="h-4 w-4 text-primary" />
-              </CardHeader>
-              <CardContent className="pt-6">
-                <motion.div
-                  initial={{ scale: 0.8, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ delay: 0.2, duration: 0.5 }}
-                  className="text-3xl font-bold"
-                >
-                  {loading
-                    ? "Loading..."
-                    : `₦${(totalPaid ?? 0).toLocaleString()}`}
-                </motion.div>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Total payments made for all consultations
-                </p>
-              </CardContent>
-            </div>
-          </Card>
-        </motion.div>
-      </motion.div>
     </div>
   );
 }
