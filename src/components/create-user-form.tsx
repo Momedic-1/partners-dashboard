@@ -58,7 +58,7 @@ export function CreateUserForm() {
     if (!formData.firstName.trim())
       newErrors.firstName = "First name is required";
     if (!formData.lastName.trim()) newErrors.lastName = "Last name is required";
-    if (!formData?.email.trim()) newErrors.email = "Email address is optional";
+    // if (!formData?.email.trim()) newErrors.email = "Email address is optional";
     if (!formData.phone.trim()) newErrors.phone = "Phone number is required";
     if (!formData.password) newErrors.password = "Password is required";
     if (formData.password !== formData.confirmedPassword)
@@ -246,13 +246,12 @@ export function CreateUserForm() {
                 value={formData.gender}
                 onChange={handleChange}
                 disabled={isSubmitting || isSuccess}
-                className="w-full border border-gray-300 rounded p-2"
+                className="w-full border  border-gray-300 rounded p-2"
                 required
               >
                 <option value="">Select gender</option>
                 <option value="female">Female</option>
                 <option value="male">Male</option>
-                <option value="other">Other</option>
               </select>
               {errors.gender && (
                 <p className="text-red-500 text-sm">{errors.gender}</p>
@@ -260,10 +259,10 @@ export function CreateUserForm() {
             </motion.div>
           </CardContent>
 
-          <CardFooter className="flex flex-col space-y-4">
+          <CardFooter className="flex cursor-pointer flex-col space-y-4">
             <Button
               type="submit"
-              className="w-full button-hover-effect"
+              className="w-full cursor-pointer button-hover-effect"
               disabled={isSubmitting || isSuccess}
             >
               {isSubmitting ? (
