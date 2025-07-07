@@ -40,8 +40,33 @@ import { AuthProvider } from "@/AuthContext"
 export const metadata: Metadata = {
   title: "Partner Dashboard",
   description: "Enhanced dashboard for partners to manage funds and users",
-  generator: 'v0.dev'
-}
+  generator: "v0.dev",
+  icons: {
+    icon: "/medfair.svg"
+  },
+  openGraph: {
+    title: "Partner Dashboard",
+    description: "Enhanced dashboard for partners to manage funds and users",
+    url: "https://yourdomain.com",
+    siteName: "Partner Dashboard",
+    images: [
+      {
+        url: "/medfair.svg", 
+        width: 1200,
+        height: 630,
+        alt: "Partner Dashboard Preview",
+      },
+    ],
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Partner Dashboard",
+    description: "Enhanced dashboard for partners to manage funds and users",
+    images: ["/medfair.svg"],
+  },
+};
+
 
 export default function RootLayout({
   children,
