@@ -265,7 +265,7 @@ export function UserManagement() {
                             <TableCell>
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="icon">
+                                <Button variant="ghost" size="icon" className="cursor-pointer">
                                     <MoreHorizontal />
                                     <span className="sr-only">Actions</span>
                                   </Button>

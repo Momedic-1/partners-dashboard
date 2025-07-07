@@ -5,7 +5,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   BarChart3,
-  Bell,
   ChevronLeft,
   ChevronRight,
   FileSpreadsheet,
@@ -18,7 +17,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useUserProfile } from "@/components/user-profile-context";
 // import { useNotifications } from "@/components/notifications-context";
 import { motion, AnimatePresence } from "framer-motion";
@@ -28,7 +27,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Badge } from "@/components/ui/badge";
 
 export function DashboardSidebar() {
   const pathname = usePathname();
@@ -157,7 +155,7 @@ export function DashboardSidebar() {
           <Button
             variant="ghost"
             size="icon"
-            className="ml-auto hover:bg-white/10 text-white"
+            className="ml-auto hover:bg-white/10 cursor-pointer text-white"
             onClick={toggleSidebar}
           >
             {isCollapsed ? (

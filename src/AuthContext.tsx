@@ -1,7 +1,3 @@
-
-
-
-
 "use client";
 
 import { baseUrl } from "@/env";
@@ -9,16 +5,25 @@ import axios from "axios";
 import { useRouter } from "next/navigation";
 import React, { createContext, useContext, useState, useEffect } from "react";
 
+// Utility to check if JWT token is expired
+const isTokenExpired = (token: string): boolean => {
+  try {
+    const [, payload] = token.split(".");
+    const decoded = JSON.parse(atob(payload));
+    const exp = decoded.exp;
+    return Date.now() >= exp * 1000; // exp is in seconds, convert to ms
+  } catch {
+    return true;
+  }
+};
 
 export interface User {
   id: string;
-  organizationId: number;
+  organizationId?: number;
   email: string;
   name: string;
-  
-  [key: string]: any; 
+  [key: string]: any;
 }
-
 
 export interface AuthContextType {
   token: string | null;
@@ -28,43 +33,36 @@ export interface AuthContextType {
   logout: () => void;
 }
 
-
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [token, setToken] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-
   const router = useRouter();
 
-  
   const login = async (email: string, password: string): Promise<User> => {
     try {
       const response = await axios.post(`${baseUrl}/api/organization/login`, {
         email,
         password,
       });
-      
+
       const { token, orgAdminLoginDto } = response.data;
-      
+
       const userData: User = {
         id: orgAdminLoginDto.id,
         organizationId: orgAdminLoginDto.organizationId,
         email: orgAdminLoginDto.email,
         name: orgAdminLoginDto.name,
-       
       };
-  
-      // Store token and user data
+
       setToken(token);
       setUser(userData);
-      
-      // Store in localStorage for persistence
+
       localStorage.setItem("authToken", token);
       localStorage.setItem("userData", JSON.stringify(userData));
-      
+
       return userData;
     } catch (error: any) {
       console.error("Login failed:", error);
@@ -72,34 +70,40 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  // Logout function
   const logout = () => {
     setToken(null);
     setUser(null);
-
-    // Remove data from localStorage
     localStorage.removeItem("authToken");
     localStorage.removeItem("userData");
-    
-    // Redirect to login page
-    router.push("/login");
+    router.push("/auth/login");
   };
 
-  // Initialize auth state from localStorage
+  // On mount, initialize token and user from localStorage
   useEffect(() => {
     const storedToken = localStorage.getItem("authToken");
     const storedUser = localStorage.getItem("userData");
-    
-    if (storedToken) {
-      setToken(storedToken);
+
+    if (storedToken && isTokenExpired(storedToken)) {
+      logout(); // Expired token, force logout
+      return;
     }
-    
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
-    
+
+    if (storedToken) setToken(storedToken);
+    if (storedUser) setUser(JSON.parse(storedUser));
+
     setLoading(false);
   }, []);
+
+  // Periodically check if token is expired
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (token && isTokenExpired(token)) {
+        logout();
+      }
+    }, 60 * 1000); // Check every 1 minute
+
+    return () => clearInterval(interval);
+  }, [token]);
 
   return (
     <AuthContext.Provider value={{ token, user, loading, login, logout }}>
@@ -108,13 +112,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   );
 };
 
-// Custom hook to use the AuthContext
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error("useAuth must be used within an AuthProvider");
-  }
+  if (!context) throw new Error("useAuth must be used within an AuthProvider");
   return context;
 };
-
-export default AuthContext;
