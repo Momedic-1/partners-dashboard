@@ -265,7 +265,7 @@ export function UserManagement() {
                             <TableCell>
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="icon">
+                                <Button variant="ghost" size="icon" className="cursor-pointer">
                                     <MoreHorizontal />
                                     <span className="sr-only">Actions</span>
                                   </Button>
@@ -298,6 +298,7 @@ export function UserManagement() {
                 <Button
                   disabled={currentPage === 1}
                   onClick={() => handlePageChange(currentPage - 1)}
+                  className="cursor-pointer"
                 >
                   Previous
                 </Button>
@@ -315,6 +316,7 @@ export function UserManagement() {
                 <Button
                   disabled={currentPage === totalPages}
                   onClick={() => handlePageChange(currentPage + 1)}
+                  className="cursor-pointer"
                 >
                   Next
                 </Button>
