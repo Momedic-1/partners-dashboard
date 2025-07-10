@@ -188,10 +188,10 @@ export function UserManagement() {
             <CardTitle>User Management</CardTitle>
             <CardDescription>Manage your registered users</CardDescription>
           </div>
-          <Button className="flex items-center cursor-pointer gap-2">
+          {/* <Button className="flex items-center cursor-pointer gap-2">
             <UserPlus className="h-4 w-4" />
             <span>Add User</span>
-          </Button>
+          </Button> */}
         </CardHeader>
         <CardContent>
           <div className="flex items-center mb-6">
