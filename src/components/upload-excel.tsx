@@ -254,7 +254,8 @@ export function UploadExcel({ orgId }: UploadExcelProps) {
               {/* <li>Columns: firstName, lastName, emailAddress</li> */}
               <li>
                 Columns: <code>firstName</code>, <code>lastName</code>,{" "}
-                <code>emailAddress</code>
+                <code>emailAddress(optional)</code>, <code>phoneNumber</code>, 
+                 <code>password</code>, <code>confirmPassword</code>, <code>gender</code>
               </li>
               <li>Max size: 5MB</li>
               <li>Max 1000 users</li>
