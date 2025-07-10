@@ -2,7 +2,6 @@
 
 import LoginForm from "@/components/forms/Login-form";
 
-
 const Login = () => {
   return (
     <div className="flex min-h-screen">
@@ -27,12 +26,12 @@ const Login = () => {
             <LoginForm />
           </div>
 
-          <p className="text-start text-gray-500 mt-4">
+          {/* <p className="text-start text-gray-500 mt-4">
             Don&apos;t have an account?{" "}
             <a href="/auth/signup" className=" text-blue-900 hover:underline">
               Create one
             </a>
-          </p>
+          </p> */}
         </div>
       </div>
     </div>
