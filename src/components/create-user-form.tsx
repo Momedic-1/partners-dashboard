@@ -31,6 +31,7 @@ export function CreateUserForm() {
     password: "",
     confirmedPassword: "",
     gender: "",
+    date: "", // Date of birth
   };
 
   const [formData, setFormData] = useState(initialFormState);
@@ -57,13 +58,14 @@ export function CreateUserForm() {
     const newErrors: Record<string, string> = {};
     if (!formData.firstName.trim())
       newErrors.firstName = "First name is required";
-    if (!formData.lastName.trim()) newErrors.lastName = "Last name is required";
-    // if (!formData?.email.trim()) newErrors.email = "Email address is optional";
+    if (!formData.lastName.trim())
+      newErrors.lastName = "Last name is required";
     if (!formData.phone.trim()) newErrors.phone = "Phone number is required";
     if (!formData.password) newErrors.password = "Password is required";
     if (formData.password !== formData.confirmedPassword)
       newErrors.confirmedPassword = "Passwords do not match";
     if (!formData.gender) newErrors.gender = "Please select a gender";
+    if (!formData.date.trim()) newErrors.date = "Date of birth is required";
     return newErrors;
   };
 
@@ -91,6 +93,7 @@ export function CreateUserForm() {
           password: formData.password,
           confirmedPassword: formData.confirmedPassword,
           gender: formData.gender,
+          date: formData.date, // send date
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -188,6 +191,28 @@ export function CreateUserForm() {
               </div>
             </div>
 
+            <motion.div
+              className="space-y-2"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.8, duration: 0.5 }}
+            >
+              <Label htmlFor="date">Date of Birth</Label>
+              <Input
+                id="date"
+                name="date"
+                type="date"
+                value={formData.date}
+                onChange={handleChange}
+                required
+                disabled={isSubmitting || isSuccess} 
+                className="cursor-pointer"
+              />
+              {errors.date && (
+                <p className="text-red-500 text-sm">{errors.date}</p>
+              )}
+            </motion.div>
+
             {["email", "phone", "password", "confirmedPassword"].map(
               (id, idx) => (
                 <motion.div
@@ -246,7 +271,7 @@ export function CreateUserForm() {
                 value={formData.gender}
                 onChange={handleChange}
                 disabled={isSubmitting || isSuccess}
-                className="w-full border  border-gray-300 rounded p-2"
+                className="w-full border border-gray-300 rounded p-2"
                 required
               >
                 <option value="">Select gender</option>
@@ -259,10 +284,10 @@ export function CreateUserForm() {
             </motion.div>
           </CardContent>
 
-          <CardFooter className="flex cursor-pointer flex-col space-y-4">
+          <CardFooter className="flex flex-col space-y-4">
             <Button
               type="submit"
-              className="w-full cursor-pointer button-hover-effect"
+              className="w-full cursor-pointer"
               disabled={isSubmitting || isSuccess}
             >
               {isSubmitting ? (
