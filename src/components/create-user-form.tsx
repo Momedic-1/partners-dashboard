@@ -88,7 +88,7 @@ export function CreateUserForm() {
         {
           firstName: formData.firstName,
           lastName: formData.lastName,
-          email: formData.email,
+          email: formData?.email,
           phoneNumber: formData.phone,
           password: formData.password,
           confirmedPassword: formData.confirmedPassword,
