@@ -8,7 +8,6 @@ import { Eye, EyeOff } from "lucide-react";
 
 const Page = () => {
   const router = useRouter();
-
   const [email, setEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -30,20 +29,25 @@ const Page = () => {
     setLoading(true);
 
     try {
-      await axios.post(`${baseUrl}/api/organization/request-password-reset`, {
-        email,
-        newPassword,
-        confirmPassword,
-      }, {
-        headers: {
-          Accept: "*/*",
-          "Content-Type": "application/json",
+      await axios.post(
+        `${baseUrl}/api/organization/request-password-reset`,
+        {
+          email,
+          newPassword,
+          confirmPassword,
         },
-      });
+        {
+          headers: {
+            Accept: "*/*",
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
+      localStorage.setItem("reset_email", email); // Save email
       setMessage("OTP sent to your email. Please check your inbox.");
       setTimeout(() => {
-        router.push(`/auth/verify-reset-password`);
+        router.push("/auth/verify-reset-password");
       }, 2000);
     } catch (err: any) {
       setError(err.response?.data?.message || "Failed to send OTP. Try again.");

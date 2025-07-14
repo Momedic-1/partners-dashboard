@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 import { baseUrl } from "@/env";
@@ -8,19 +8,27 @@ import { baseUrl } from "@/env";
 const Page = () => {
   const router = useRouter();
 
+  const [email, setEmail] = useState("");
   const [otp, setOtp] = useState(Array(6).fill(""));
   const inputRefs = useRef<HTMLInputElement[]>([]);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    const storedEmail = localStorage.getItem("reset_email");
+    if (storedEmail) {
+      setEmail(storedEmail);
+    } else {
+      router.push("/auth/reset-password"); // fallback if no email
+    }
+  }, [router]);
+
   const handleChange = (value: string, index: number) => {
     if (!/^\d?$/.test(value)) return;
-
     const newOtp = [...otp];
     newOtp[index] = value;
     setOtp(newOtp);
-
     if (value && index < 5) {
       inputRefs.current[index + 1]?.focus();
     }
@@ -38,7 +46,6 @@ const Page = () => {
     setMessage("");
 
     const fullOtp = otp.join("");
-
     if (fullOtp.length !== 6) {
       setError("Please enter all 6 digits.");
       return;
@@ -46,14 +53,16 @@ const Page = () => {
 
     setLoading(true);
     try {
-      await axios.post(`${baseUrl}/api/organization/verify-password-reset`, {
-        email,
-        otp: fullOtp,
-      });
+      await axios.post(
+        `${baseUrl}/api/organization/verify-reset-code?email=${encodeURIComponent(
+          email
+        )}&code=${otp.join("")}`
+      );
 
+      localStorage.removeItem("reset_email"); // cleanup
       setMessage("Password reset successfully!");
       setTimeout(() => {
-        router.push("/login");
+        router.push("/");
       }, 3000);
     } catch (err: any) {
       setError(err.response?.data?.message || "OTP verification failed.");
@@ -71,7 +80,8 @@ const Page = () => {
         <h2 className="text-2xl font-bold text-center">Verify OTP</h2>
 
         <p className="text-sm text-gray-500 text-center">
-          A 6-digit OTP was sent to <strong className="text-blue-600">{email}</strong>
+          A 6-digit OTP was sent to{" "}
+          <strong className="text-blue-600">{email}</strong>
         </p>
 
         <div className="flex justify-center gap-2">
@@ -102,9 +112,7 @@ const Page = () => {
         {message && (
           <p className="text-green-600 text-sm text-center">{message}</p>
         )}
-        {error && (
-          <p className="text-red-600 text-sm text-center">{error}</p>
-        )}
+        {error && <p className="text-red-600 text-sm text-center">{error}</p>}
       </form>
     </div>
   );
