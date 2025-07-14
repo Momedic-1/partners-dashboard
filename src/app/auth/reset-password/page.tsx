@@ -8,9 +8,9 @@ import { Eye, EyeOff } from "lucide-react";
 
 const Page = () => {
   const router = useRouter();
-
   const [email, setEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -18,33 +18,39 @@ const Page = () => {
 
   const handleReset = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setLoading(true);
-    setMessage("");
     setError("");
+    setMessage("");
+
+    if (newPassword !== confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
+
+    setLoading(true);
 
     try {
-      const response = await axios.post(
-        `${baseUrl}/api/v1/registration/password/reset`,
+      await axios.post(
+        `${baseUrl}/api/organization/request-password-reset`,
         {
           email,
           newPassword,
+          confirmPassword,
+        },
+        {
+          headers: {
+            Accept: "*/*",
+            "Content-Type": "application/json",
+          },
         }
       );
 
-      setMessage(
-        response.data?.data || "Password has been reset successfully!"
-      );
-      setEmail("");
-      setNewPassword("");
-
-      // Wait 7 seconds and then redirect to homepage
+      localStorage.setItem("reset_email", email); // Save email
+      setMessage("OTP sent to your email. Please check your inbox.");
       setTimeout(() => {
-        router.push("/");
-      }, 7000);
+        router.push("/auth/verify-reset-password");
+      }, 2000);
     } catch (err: any) {
-      setError(
-        err.response?.data?.message || "Failed to reset password. Try again."
-      );
+      setError(err.response?.data?.message || "Failed to send OTP. Try again.");
     } finally {
       setLoading(false);
     }
@@ -82,7 +88,22 @@ const Page = () => {
             type={showPassword ? "text" : "password"}
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
-            placeholder="Enter new password"
+            placeholder="New password"
+            required
+            className="w-full px-4 py-2 border border-gray-300 rounded-md pr-12"
+          />
+        </div>
+
+        <div className="space-y-1 relative">
+          <label htmlFor="confirmPassword" className="text-sm text-gray-600">
+            Confirm Password
+          </label>
+          <input
+            id="confirmPassword"
+            type={showPassword ? "text" : "password"}
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            placeholder="Confirm password"
             required
             className="w-full px-4 py-2 border border-gray-300 rounded-md pr-12"
           />
@@ -91,27 +112,21 @@ const Page = () => {
             onClick={() => setShowPassword((prev) => !prev)}
             className="absolute right-3 top-9 text-gray-500 hover:text-gray-700"
           >
-            {showPassword ? (
-              <EyeOff className="h-5 w-5 cursor-pointer" />
-            ) : (
-              <Eye className="h-5 w-5 cursor-pointer" />
-            )}
+            {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
           </button>
         </div>
 
         <button
           type="submit"
           disabled={loading}
-          className={`w-full py-2 text-white cursor-pointer rounded-md bg-blue-700 ${
+          className={`w-full py-2 text-white rounded-md bg-blue-700 ${
             loading ? "opacity-50 cursor-not-allowed" : "hover:bg-blue-800"
           }`}
         >
-          {loading ? "Resetting..." : "Reset Password"}
+          {loading ? "Sending OTP..." : "Send OTP"}
         </button>
 
-        {message && (
-          <p className="text-green-600 text-sm text-center">{message}</p>
-        )}
+        {message && <p className="text-green-600 text-sm text-center">{message}</p>}
         {error && <p className="text-red-600 text-sm text-center">{error}</p>}
       </form>
     </div>
