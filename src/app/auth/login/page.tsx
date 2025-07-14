@@ -26,10 +26,10 @@ const Login = () => {
             <LoginForm />
           </div>
 
-          <p className="text-center text-gray-500 mt-4">
-            Change{" "}
-            <a href="/auth/reset-password" className=" text-blue-900 hover:underline">
-              Password
+          <p className=" text-gray-500 mt-2">
+            Forget{" "}
+            <a href="/auth/reset-password" className=" text-red-900 hover:underline">
+              Password?
             </a>
           </p>
         </div>
