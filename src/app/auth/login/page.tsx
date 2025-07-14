@@ -28,7 +28,7 @@ const Login = () => {
 
           <p className="text-center text-gray-500 mt-4">
             Change{" "}
-            <a href="/auth/signup" className=" text-blue-900 hover:underline">
+            <a href="/auth/reset-password" className=" text-blue-900 hover:underline">
               Password
             </a>
           </p>
