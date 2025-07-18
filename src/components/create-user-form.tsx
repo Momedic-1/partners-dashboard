@@ -31,7 +31,6 @@ export function CreateUserForm() {
     password: "",
     confirmedPassword: "",
     gender: "",
-    date: "", // Date of birth
   };
 
   const [formData, setFormData] = useState(initialFormState);
@@ -58,14 +57,12 @@ export function CreateUserForm() {
     const newErrors: Record<string, string> = {};
     if (!formData.firstName.trim())
       newErrors.firstName = "First name is required";
-    if (!formData.lastName.trim())
-      newErrors.lastName = "Last name is required";
+    if (!formData.lastName.trim()) newErrors.lastName = "Last name is required";
     if (!formData.phone.trim()) newErrors.phone = "Phone number is required";
     if (!formData.password) newErrors.password = "Password is required";
     if (formData.password !== formData.confirmedPassword)
       newErrors.confirmedPassword = "Passwords do not match";
     if (!formData.gender) newErrors.gender = "Please select a gender";
-    if (!formData.date.trim()) newErrors.date = "Date of birth is required";
     return newErrors;
   };
 
@@ -93,7 +90,6 @@ export function CreateUserForm() {
           password: formData.password,
           confirmedPassword: formData.confirmedPassword,
           gender: formData.gender,
-          date: formData.date, // send date
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -195,22 +191,21 @@ export function CreateUserForm() {
               className="space-y-2"
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.8, duration: 0.5 }}
+              transition={{ delay: 0.3, duration: 0.5 }}
             >
-              <Label htmlFor="date">Date of Birth</Label>
+              <Label htmlFor="createdDate">Date Added</Label>
               <Input
-                id="date"
-                name="date"
-                type="date"
-                value={formData.date}
-                onChange={handleChange}
-                required
-                disabled={isSubmitting || isSuccess} 
-                className="cursor-pointer"
+                id="createdDate"
+                name="createdDate"
+                type="text"
+                value={new Date().toISOString().split("T")[0]}
+                readOnly
+                disabled
+                className="bg-gray-50 cursor-not-allowed"
               />
-              {errors.date && (
-                <p className="text-red-500 text-sm">{errors.date}</p>
-              )}
+              <p className="text-gray-500 text-sm">
+                This date will be automatically set when the user is created
+              </p>
             </motion.div>
 
             {["email", "phone", "password", "confirmedPassword"].map(
