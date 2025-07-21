@@ -488,8 +488,9 @@ export function ConsultationReports() {
       );
 
       // Transform the flat array into Consultation[]
-      const transformed: Consultation[] = response.data.map(
-        (item: any, idx: number) => ({
+
+      const transformed: Consultation[] = response.data
+        .map((item: any, idx: number) => ({
           id: String(idx),
           patientName: item.patientName || "",
           patientEmail: "",
@@ -500,8 +501,13 @@ export function ConsultationReports() {
           date: item.dateTime || new Date().toISOString(),
           duration: 0,
           status: item.status || "completed",
-        })
-      );
+        }))
+        .sort((a, b) => {
+          // Sort by date in descending order (newest first)
+          return new Date(b.date).getTime() - new Date(a.date).getTime();
+        });
+
+      setConsultations(transformed);
 
       setConsultations(transformed);
     } catch (err: any) {
