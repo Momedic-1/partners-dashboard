@@ -20,9 +20,9 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar } from "@/components/ui/avatar";
 import { toast } from "@/components/ui/use-toast";
-import { Edit, MoreHorizontal, Search, Trash2, UserPlus } from "lucide-react";
+import { Edit, MoreHorizontal, Search, Trash2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   DropdownMenu,
@@ -96,7 +96,15 @@ export function UserManagement() {
             headers: { Authorization: `Bearer ${token}` },
           }
         );
-        setUsers(res.data.content);
+
+        // Sort users by dateUploaded in descending order (most recent first)
+        const sortedUsers = res.data.content.sort((a, b) => {
+          const dateA = new Date(a.dateUploaded || 0).getTime();
+          const dateB = new Date(b.dateUploaded || 0).getTime();
+          return dateB - dateA; // Descending order
+        });
+
+        setUsers(sortedUsers);
         setTotalPages(res.data.totalPages);
       } catch (err: any) {
         console.error(err);
@@ -109,16 +117,16 @@ export function UserManagement() {
     fetchUsers();
   }, [currentPage, pageSize, user, token]);
 
-  const getInitials = (name: string | undefined) => {
-    // Check if name is defined before using split
-    if (!name) return "??";
+  // const getInitials = (name: string | undefined) => {
+  //   // Check if name is defined before using split
+  //   if (!name) return "??";
 
-    return name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase();
-  };
+  //   return name
+  //     .split(" ")
+  //     .map((n) => n[0])
+  //     .join("")
+  //     .toUpperCase();
+  // };
 
   const handlePageChange = (page: number) => {
     if (page >= 1 && page <= totalPages) setCurrentPage(page);
@@ -169,12 +177,20 @@ export function UserManagement() {
   //   setIsDeleteDialogOpen(false);
   // };
 
-  const filtered = users.filter(
-    (u) =>
-      (u.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false) ||
-      (u.email?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false) ||
-      (u.phone?.includes(searchTerm) ?? false)
-  );
+  // Apply sorting to filtered results as well
+  const filtered = users
+    .filter(
+      (u) =>
+        (u.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ??
+          false) ||
+        (u.email?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false) ||
+        (u.phone?.includes(searchTerm) ?? false)
+    )
+    .sort((a, b) => {
+      const dateA = new Date(a.dateUploaded || 0).getTime();
+      const dateB = new Date(b.dateUploaded || 0).getTime();
+      return dateB - dateA; // Most recent first
+    });
 
   return (
     <motion.div
@@ -265,7 +281,11 @@ export function UserManagement() {
                             <TableCell>
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="cursor-pointer">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="cursor-pointer"
+                                  >
                                     <MoreHorizontal />
                                     <span className="sr-only">Actions</span>
                                   </Button>
