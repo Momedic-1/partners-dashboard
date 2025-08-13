@@ -106,6 +106,16 @@ export function DashboardSidebar() {
       icon: User,
       title: "Profile",
     },
+    {
+      href: "/dashboard/investigations",
+      icon: User,
+      title: "Investigations",
+    },
+    {
+      href: "/dashboard/medications",
+      icon: User,
+      title: "Medications",
+    },
   ];
 
   if (!isMounted) return null;
