@@ -33,12 +33,14 @@ import {
   AlertCircle,
   Calendar,
   User,
-  Pill,
+  FileSearch,
   Clock,
   FileText,
   Shield,
   RefreshCw,
   X,
+  Microscope,
+  Clipboard,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { motion, AnimatePresence } from "framer-motion";
@@ -54,22 +56,23 @@ import { baseUrl } from "@/env";
 import { useAuth } from "@/AuthContext";
 import { useEffect, useState } from "react";
 
-interface Prescription {
+interface InvestigationItem {
+  investigationName: string;
+  instruction: string;
+}
+
+interface InvestigationOrder {
   id: number;
-  drugName: string;
-  dosage: string;
-  frequency: string;
-  duration: string;
-  instructions: string;
-  createdAt: string;
-  doctorName: string;
   patientName: string;
   patientPhone: string;
   patientEmail: string;
+  doctorName: string;
+  orderDate: string;
+  items: InvestigationItem[];
 }
 
-const PrescriptionReports = () => {
-  const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
+const InvestigationReports = () => {
+  const [investigations, setInvestigations] = useState<InvestigationOrder[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [doctorFilter, setDoctorFilter] = useState("all");
   const [showFilters, setShowFilters] = useState(false);
@@ -79,10 +82,10 @@ const PrescriptionReports = () => {
   const [accessLoading, setAccessLoading] = useState(true);
   const { user, token } = useAuth();
 
-  const doctors = Array.from(new Set(prescriptions.map((p) => p.doctorName)));
+  const doctors = Array.from(new Set(investigations.map((inv) => inv.doctorName)));
 
-  // Check if organization has access to prescriptions
-  const checkPrescriptionAccess = async () => {
+  // Check if organization has access to investigation orders
+  const checkInvestigationAccess = async () => {
     setAccessLoading(true);
     setError("");
 
@@ -100,9 +103,9 @@ const PrescriptionReports = () => {
     }
 
     try {
-      // First, check if the organization already has access by trying to fetch prescriptions
+      // First, check if the organization already has access by trying to fetch investigation orders
       const response = await axios.get(
-        `${baseUrl}/api/organization/${organizationId}/prescriptions`,
+        `${baseUrl}/api/organization/${organizationId}/investigation-orders`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -110,25 +113,25 @@ const PrescriptionReports = () => {
         }
       );
 
-      // If successful, set access to true and set the prescriptions
-      const sortedPrescriptions = response.data.sort(
-        (a: Prescription, b: Prescription) => {
+      // If successful, set access to true and set the investigation orders
+      const sortedInvestigations = response.data.sort(
+        (a: InvestigationOrder, b: InvestigationOrder) => {
           return (
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+            new Date(b.orderDate).getTime() - new Date(a.orderDate).getTime()
           );
         }
       );
 
-      setPrescriptions(sortedPrescriptions);
+      setInvestigations(sortedInvestigations);
       setHasAccess(true);
       setLoading(false);
     } catch (err: any) {
-      console.error("Error checking prescription access:", err);
+      console.error("Error checking investigation access:", err);
       if (err.response?.status === 403 || err.response?.status === 401) {
         // If access is denied, try to request access
-        await requestPrescriptionAccess(organizationId);
+        await requestInvestigationAccess(organizationId);
       } else {
-        setError("Failed to check prescription access.");
+        setError("Failed to check investigation access.");
         setLoading(false);
       }
     } finally {
@@ -136,11 +139,11 @@ const PrescriptionReports = () => {
     }
   };
 
-  // Request prescription access for the organization
-  const requestPrescriptionAccess = async (organizationId: number) => {
+  // Request investigation access for the organization
+  const requestInvestigationAccess = async (organizationId: number) => {
     try {
       await axios.put(
-        `${baseUrl}/api/organization/${organizationId}/prescription-access?canView=true`,
+        `${baseUrl}/api/organization/organizations/${organizationId}/investigation-visibility?canView=true`,
         {}, // Empty body for PUT request
         {
           headers: {
@@ -150,22 +153,22 @@ const PrescriptionReports = () => {
         }
       );
 
-      // After granting access, fetch prescriptions
-      await fetchPrescriptions();
+      // After granting access, fetch investigation orders
+      await fetchInvestigationOrders();
       setHasAccess(true);
     } catch (err: any) {
-      console.error("Error requesting prescription access:", err);
+      console.error("Error requesting investigation access:", err);
       if (err.response?.status === 403 || err.response?.status === 401) {
         setHasAccess(false);
       } else {
-        setError("Failed to request prescription access.");
+        setError("Failed to request investigation access.");
       }
       setLoading(false);
     }
   };
 
-  // Fetch prescriptions if access is granted
-  const fetchPrescriptions = async () => {
+  // Fetch investigation orders if access is granted
+  const fetchInvestigationOrders = async () => {
     setLoading(true);
     setError("");
 
@@ -184,7 +187,7 @@ const PrescriptionReports = () => {
 
     try {
       const response = await axios.get(
-        `${baseUrl}/api/organization/${organizationId}/prescriptions`,
+        `${baseUrl}/api/organization/${organizationId}/investigation-orders`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -192,36 +195,38 @@ const PrescriptionReports = () => {
         }
       );
 
-      const sortedPrescriptions = response.data.sort(
-        (a: Prescription, b: Prescription) => {
-          // Sort by createdAt in descending order (newest first)
+      const sortedInvestigations = response.data.sort(
+        (a: InvestigationOrder, b: InvestigationOrder) => {
+          // Sort by orderDate in descending order (newest first)
           return (
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+            new Date(b.orderDate).getTime() - new Date(a.orderDate).getTime()
           );
         }
       );
 
-      setPrescriptions(sortedPrescriptions);
+      setInvestigations(sortedInvestigations);
     } catch (err: any) {
-      console.error("Error fetching prescriptions:", err);
-      setError("Failed to load prescriptions.");
+      console.error("Error fetching investigation orders:", err);
+      setError("Failed to load investigation orders.");
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    checkPrescriptionAccess();
+    checkInvestigationAccess();
   }, [user, token]);
 
-  const filteredPrescriptions = prescriptions.filter((p) => {
+  const filteredInvestigations = investigations.filter((inv) => {
     const matchSearch =
-      p.patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.doctorName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.drugName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.patientEmail.toLowerCase().includes(searchTerm.toLowerCase());
+      inv.patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      inv.doctorName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      inv.patientEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      inv.items.some((item) =>
+        item.investigationName.toLowerCase().includes(searchTerm.toLowerCase())
+      );
 
-    const matchDoctor = doctorFilter === "all" || p.doctorName === doctorFilter;
+    const matchDoctor = doctorFilter === "all" || inv.doctorName === doctorFilter;
 
     return matchSearch && matchDoctor;
   });
@@ -232,6 +237,9 @@ const PrescriptionReports = () => {
   };
 
   const hasActiveFilters = searchTerm !== "" || doctorFilter !== "all";
+
+  // Total investigations count across all orders
+  const totalInvestigationsCount = investigations.reduce((total, order) => total + order.items.length, 0);
 
   // Access loading component
   if (accessLoading) {
@@ -264,7 +272,7 @@ const PrescriptionReports = () => {
                   Checking Access Permissions
                 </h3>
                 <p className="text-gray-600">
-                  Verifying your access to prescription data...
+                  Verifying your access to investigation order data...
                 </p>
               </motion.div>
             </CardContent>
@@ -300,14 +308,14 @@ const PrescriptionReports = () => {
                 Access Restricted
               </CardTitle>
               <CardDescription className="text-lg text-gray-600">
-                Prescription data access required
+                Investigation order data access required
               </CardDescription>
             </CardHeader>
             <CardContent className="pb-12">
               <Alert className="border-amber-200 bg-amber-50">
                 <AlertCircle className="h-5 w-5 text-amber-600" />
                 <AlertDescription className="text-amber-800 font-medium">
-                  This organization does not have access to client prescription
+                  This organization does not have access to client investigation order
                   data. Please contact your system administrator to request the
                   necessary permissions.
                 </AlertDescription>
@@ -337,15 +345,15 @@ const PrescriptionReports = () => {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-2">
             <div>
               <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-700 bg-clip-text text-transparent">
-                Prescription Reports
+                Investigation Orders
               </h1>
               <p className="text-gray-600 mt-2 text-lg">
-                Comprehensive view of all client prescriptions
+                Comprehensive view of all client investigation orders
               </p>
             </div>
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
               <Button
-                onClick={() => fetchPrescriptions()}
+                onClick={() => fetchInvestigationOrders()}
                 variant="outline"
                 className="bg-white/80 backdrop-blur-sm border-2 hover:border-blue-300 transition-all duration-200"
               >
@@ -367,8 +375,8 @@ const PrescriptionReports = () => {
                 <div className="flex items-center gap-3">
                   <FileText className="h-6 w-6" />
                   <div>
-                    <p className="text-blue-100 text-sm">Total</p>
-                    <p className="text-2xl font-bold">{prescriptions.length}</p>
+                    <p className="text-blue-100 text-sm">Total Orders</p>
+                    <p className="text-2xl font-bold">{investigations.length}</p>
                   </div>
                 </div>
               </CardContent>
@@ -389,12 +397,10 @@ const PrescriptionReports = () => {
             <Card className="border-0 shadow-lg bg-gradient-to-br from-purple-500 to-purple-600 text-white">
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
-                  <Pill className="h-6 w-6" />
+                  <Microscope className="h-6 w-6" />
                   <div>
-                    <p className="text-purple-100 text-sm">Filtered</p>
-                    <p className="text-2xl font-bold">
-                      {filteredPrescriptions.length}
-                    </p>
+                    <p className="text-purple-100 text-sm">Investigations</p>
+                    <p className="text-2xl font-bold">{totalInvestigationsCount}</p>
                   </div>
                 </div>
               </CardContent>
@@ -408,9 +414,9 @@ const PrescriptionReports = () => {
                     <p className="text-amber-100 text-sm">This Month</p>
                     <p className="text-2xl font-bold">
                       {
-                        prescriptions.filter(
-                          (p) =>
-                            new Date(p.createdAt).getMonth() ===
+                        investigations.filter(
+                          (inv) =>
+                            new Date(inv.orderDate).getMonth() ===
                             new Date().getMonth()
                         ).length
                       }
@@ -433,10 +439,10 @@ const PrescriptionReports = () => {
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
                   <CardTitle className="text-xl font-semibold text-gray-900">
-                    Prescription Database
+                    Investigation Orders Database
                   </CardTitle>
                   <CardDescription className="text-gray-600 mt-1">
-                    Search, filter, and export prescription records
+                    Search, filter, and export investigation order records
                   </CardDescription>
                 </div>
 
@@ -479,7 +485,7 @@ const PrescriptionReports = () => {
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                     <Input
-                      placeholder="Search by patient, doctor, drug name, or email..."
+                      placeholder="Search by patient, doctor, investigation name, or email..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       className="pl-10 bg-white/70 border-gray-200 focus:border-blue-300 focus:ring-2 focus:ring-blue-100 transition-all duration-200"
@@ -581,26 +587,20 @@ const PrescriptionReports = () => {
                         </TableHead>
                         <TableHead className="font-semibold text-gray-700">
                           <div className="flex items-center gap-2">
-                            <Pill className="h-4 w-4" />
-                            Medication
+                            <Microscope className="h-4 w-4" />
+                            Investigations
                           </div>
-                        </TableHead>
-                        <TableHead className="font-semibold text-gray-700">
-                          Dosage
-                        </TableHead>
-                        <TableHead className="font-semibold text-gray-700">
-                          <div className="flex items-center gap-2">
-                            <Clock className="h-4 w-4" />
-                            Frequency
-                          </div>
-                        </TableHead>
-                        <TableHead className="font-semibold text-gray-700">
-                          Duration
                         </TableHead>
                         <TableHead className="font-semibold text-gray-700">
                           <div className="flex items-center gap-2">
                             <Calendar className="h-4 w-4" />
-                            Date
+                            Order Date
+                          </div>
+                        </TableHead>
+                        <TableHead className="font-semibold text-gray-700">
+                          <div className="flex items-center gap-2">
+                            <Clipboard className="h-4 w-4" />
+                            Items Count
                           </div>
                         </TableHead>
                       </TableRow>
@@ -608,7 +608,7 @@ const PrescriptionReports = () => {
                     <TableBody>
                       {loading ? (
                         <TableRow>
-                          <TableCell colSpan={7} className="text-center py-12">
+                          <TableCell colSpan={5} className="text-center py-12">
                             <motion.div
                               initial={{ opacity: 0 }}
                               animate={{ opacity: 1 }}
@@ -626,7 +626,7 @@ const PrescriptionReports = () => {
                               </motion.div>
                               <div className="text-center">
                                 <p className="text-lg font-medium text-gray-700">
-                                  Loading Prescriptions
+                                  Loading Investigation Orders
                                 </p>
                                 <p className="text-gray-500">
                                   Please wait while we fetch the data...
@@ -637,7 +637,7 @@ const PrescriptionReports = () => {
                         </TableRow>
                       ) : error ? (
                         <TableRow>
-                          <TableCell colSpan={7} className="text-center py-12">
+                          <TableCell colSpan={5} className="text-center py-12">
                             <motion.div
                               initial={{ opacity: 0, scale: 0.9 }}
                               animate={{ opacity: 1, scale: 1 }}
@@ -653,18 +653,18 @@ const PrescriptionReports = () => {
                             </motion.div>
                           </TableCell>
                         </TableRow>
-                      ) : filteredPrescriptions.length === 0 ? (
+                      ) : filteredInvestigations.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={7} className="text-center py-12">
+                          <TableCell colSpan={5} className="text-center py-12">
                             <motion.div
                               initial={{ opacity: 0, scale: 0.9 }}
                               animate={{ opacity: 1, scale: 1 }}
                               className="flex flex-col items-center gap-4 text-gray-400"
                             >
-                              <FileText className="w-12 h-12" />
+                              <FileSearch className="w-12 h-12" />
                               <div className="text-center">
                                 <p className="text-lg font-medium text-gray-600">
-                                  No Prescriptions Found
+                                  No Investigation Orders Found
                                 </p>
                                 <p>
                                   Try adjusting your search criteria or filters
@@ -674,9 +674,9 @@ const PrescriptionReports = () => {
                           </TableCell>
                         </TableRow>
                       ) : (
-                        filteredPrescriptions.map((prescription, index) => (
+                        filteredInvestigations.map((order, index) => (
                           <motion.tr
-                            key={prescription.id}
+                            key={order.id}
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: index * 0.05 }}
@@ -685,13 +685,13 @@ const PrescriptionReports = () => {
                             <TableCell className="py-4">
                               <div className="space-y-1">
                                 <p className="font-medium text-gray-900">
-                                  {prescription.patientName}
+                                  {order.patientName}
                                 </p>
                                 <p className="text-xs text-blue-600 font-medium">
-                                  {prescription.patientEmail}
+                                  {order.patientEmail}
                                 </p>
                                 <p className="text-xs text-gray-500">
-                                  {prescription.patientPhone}
+                                  {order.patientPhone}
                                 </p>
                               </div>
                             </TableCell>
@@ -701,65 +701,54 @@ const PrescriptionReports = () => {
                                   <User className="w-4 h-4 text-white" />
                                 </div>
                                 <span className="font-medium text-gray-700">
-                                  {prescription.doctorName}
+                                  {order.doctorName}
                                 </span>
                               </div>
                             </TableCell>
                             <TableCell className="py-4">
-                              <div className="space-y-2">
-                                <div className="flex items-center gap-2">
-                                  <Pill className="w-4 h-4 text-purple-500" />
-                                  <p className="font-medium text-gray-900">
-                                    {prescription.drugName}
-                                  </p>
-                                </div>
-                                {prescription.instructions && (
-                                  <p className="text-xs text-gray-600 bg-gray-50 rounded px-2 py-1">
-                                    {prescription.instructions}
-                                  </p>
-                                )}
+                              <div className="space-y-2 max-w-md">
+                                {order.items.map((item, itemIndex) => (
+                                  <div
+                                    key={itemIndex}
+                                    className="p-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-100"
+                                  >
+                                    <div className="flex items-start gap-2">
+                                      <Microscope className="w-4 h-4 text-purple-500 mt-0.5 flex-shrink-0" />
+                                      <div className="flex-1 min-w-0">
+                                        <p className="font-medium text-gray-900 text-sm">
+                                          {item.investigationName}
+                                        </p>
+                                        {item.instruction && (
+                                          <p className="text-xs text-gray-600 mt-1 bg-white rounded px-2 py-1">
+                                            {item.instruction}
+                                          </p>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
                               </div>
-                            </TableCell>
-                            <TableCell className="py-4">
-                              <Badge
-                                variant="secondary"
-                                className="bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800 border-blue-200"
-                              >
-                                {prescription.dosage}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="py-4">
-                              <div className="flex items-center gap-2">
-                                <Clock className="w-4 h-4 text-amber-500" />
-                                <span className="text-gray-700">
-                                  {prescription.frequency}
-                                </span>
-                              </div>
-                            </TableCell>
-                            <TableCell className="py-4">
-                              <Badge
-                                variant="outline"
-                                className="border-green-200 text-green-700 px-4 bg-green-50"
-                              >
-                                {prescription.duration}
-                              </Badge>
                             </TableCell>
                             <TableCell className="py-4">
                               <div className="space-y-1">
                                 <div className="flex items-center gap-2">
                                   <Calendar className="w-4 h-4 text-indigo-500" />
                                   <p className="font-medium text-gray-700">
-                                    {new Date(
-                                      prescription.createdAt
-                                    ).toLocaleDateString()}
+                                    {new Date(order.orderDate).toLocaleDateString()}
                                   </p>
                                 </div>
                                 <p className="text-xs text-gray-500">
-                                  {new Date(
-                                    prescription.createdAt
-                                  ).toLocaleTimeString()}
+                                  {new Date(order.orderDate).toLocaleTimeString()}
                                 </p>
                               </div>
+                            </TableCell>
+                            <TableCell className="py-4">
+                              <Badge
+                                variant="secondary"
+                                className="bg-gradient-to-r from-purple-100 to-purple-200 text-purple-800 border-purple-200"
+                              >
+                                {order.items.length} {order.items.length === 1 ? 'Item' : 'Items'}
+                              </Badge>
                             </TableCell>
                           </motion.tr>
                         ))
@@ -771,9 +760,9 @@ const PrescriptionReports = () => {
             </CardContent>
           </Card>
         </motion.div>
-      </motion.div>
+             </motion.div>
     </div>
   );
 };
 
-export default PrescriptionReports;
+export default InvestigationReports
