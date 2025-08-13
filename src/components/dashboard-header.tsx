@@ -72,7 +72,7 @@ export function DashboardHeader({ heading, text, children }: DashboardHeaderProp
               </Badge>
             )}
           </Button> */}
-          <ModeToggle />
+          {/* <ModeToggle /> */}
         </motion.div>
       </div>
 
