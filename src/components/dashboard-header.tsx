@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useState, useEffect } from "react"
-import { ModeToggle } from "@/components/mode-toggle"
+// import { ModeToggle } from "@/components/mode-toggle"
 import { Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -44,7 +44,7 @@ export function DashboardHeader({ heading, text, children }: DashboardHeaderProp
 
   return (
     <div className="flex flex-col gap-4 mb-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-row items-center justify-between gap-4">
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -72,7 +72,7 @@ export function DashboardHeader({ heading, text, children }: DashboardHeaderProp
               </Badge>
             )}
           </Button> */}
-          <ModeToggle />
+          {/* <ModeToggle /> */}
         </motion.div>
       </div>
 

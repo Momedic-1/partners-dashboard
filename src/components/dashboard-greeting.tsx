@@ -45,7 +45,7 @@ export function DashboardGreeting() {
 
   return (
     <Card className="bg-gradient-to-r from-primary/20 to-primary/5 border-none overflow-hidden">
-      <CardContent className="p-6">
+      <CardContent className="p-3 md:p-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <motion.div
             initial={{ opacity: 0, x: -20 }}
@@ -64,7 +64,7 @@ export function DashboardGreeting() {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="text-right"
+            className="flex flex-row items-center justify-center gap-6 text-right"
           >
             <p className="text-sm font-medium">{formatDate(currentTime)}</p>
             <p className="text-sm text-muted-foreground">
