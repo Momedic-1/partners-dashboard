@@ -1,14 +1,14 @@
-"use client"
+"use client";
 
 // import { WalletOverview } from "@/components/wallet-overview"
-import { DashboardHeader } from "@/components/dashboard-header"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { DashboardHeader } from "@/components/dashboard-header";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 // import { RecentTransactions } from "@/components/recent-transactions"
-import { RecentUsers } from "@/components/recent-users"
+import { RecentUsers } from "@/components/recent-users";
 
-import { DashboardGreeting } from "@/components/dashboard-greeting"
-import { DashboardOverview } from "@/components/dashboard-overview"
-import { motion } from "framer-motion"
+import { DashboardGreeting } from "@/components/dashboard-greeting";
+import { DashboardOverview } from "@/components/dashboard-overview";
+import { motion } from "framer-motion";
 
 export default function Dashboard() {
   const container = {
@@ -19,29 +19,35 @@ export default function Dashboard() {
         staggerChildren: 0.1,
       },
     },
-  }
+  };
 
   const item = {
     hidden: { opacity: 0, y: 20 },
     show: { opacity: 1, y: 0 },
-  }
+  };
 
   return (
-    <motion.div variants={container} initial="hidden" animate="show" className="flex flex-col gap-6">
-      <DashboardHeader heading="Dashboard" text="Overview of your partner account" />
+    <motion.div
+      variants={container}
+      initial="hidden"
+      animate="show"
+      className="flex flex-col gap-6"
+    >
+      <DashboardHeader
+        heading="Dashboard"
+        text="Overview of your partner account"
+      />
 
       <motion.div variants={item}>
         <DashboardGreeting />
       </motion.div>
 
       <motion.div variants={item}>
-        <DashboardOverview/>
+        <DashboardOverview />
         {/* <WalletOverview /> */}
       </motion.div>
 
-      <motion.div variants={item}>
-        {/* <DashboardStats /> */}
-      </motion.div>
+      <motion.div variants={item}>{/* <DashboardStats /> */}</motion.div>
 
       <motion.div variants={item}>
         <Tabs defaultValue="users" className="space-y-4">
@@ -58,5 +64,5 @@ export default function Dashboard() {
         </Tabs>
       </motion.div>
     </motion.div>
-  )
+  );
 }

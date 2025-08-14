@@ -97,7 +97,7 @@ export function DashboardOverview() {
   ];
 
   return (
-    <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
+    <div className="grid gap-4 grid-cols-1 lg:grid-cols-3">
       <div className="transition-transform duration-300 hover:-translate-y-1 h-full">
         <Card className="overflow-hidden h-full flex flex-col">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-gradient-to-r from-primary/10 to-primary/5">
