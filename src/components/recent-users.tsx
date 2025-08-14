@@ -160,7 +160,7 @@ export function RecentUsers() {
           )}
         </div>
       </div>
-      <div className="px-6 pb-6">
+      <div className="px-2 md:px-6 pb-6">
         {loading ? (
           <div className="flex justify-center items-center h-32">
             <div className="text-center">Loading consultations...</div>
