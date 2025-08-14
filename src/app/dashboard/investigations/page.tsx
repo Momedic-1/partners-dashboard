@@ -34,13 +34,12 @@ import {
   Calendar,
   User,
   FileSearch,
-  Clock,
+  Clipboard,
   FileText,
   Shield,
   RefreshCw,
   X,
   Microscope,
-  Clipboard,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { motion, AnimatePresence } from "framer-motion";
@@ -84,7 +83,6 @@ const InvestigationReports = () => {
 
   const doctors = Array.from(new Set(investigations.map((inv) => inv.doctorName)));
 
-  // Check if organization has access to investigation orders
   const checkInvestigationAccess = async () => {
     setAccessLoading(true);
     setError("");
@@ -95,31 +93,24 @@ const InvestigationReports = () => {
       return;
     }
 
-    const organizationId = user?.id;
-    if (!organizationId) {
+    const organizationId = Number(user?.id);
+    if (!organizationId || isNaN(organizationId)) {
       setError("Organization ID not found.");
       setAccessLoading(false);
       return;
     }
 
     try {
-      // First, check if the organization already has access by trying to fetch investigation orders
       const response = await axios.get(
         `${baseUrl}/api/organization/${organizationId}/investigation-orders`,
         {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         }
       );
 
-      // If successful, set access to true and set the investigation orders
       const sortedInvestigations = response.data.sort(
-        (a: InvestigationOrder, b: InvestigationOrder) => {
-          return (
-            new Date(b.orderDate).getTime() - new Date(a.orderDate).getTime()
-          );
-        }
+        (a: InvestigationOrder, b: InvestigationOrder) =>
+          new Date(b.orderDate).getTime() - new Date(a.orderDate).getTime()
       );
 
       setInvestigations(sortedInvestigations);
@@ -128,7 +119,6 @@ const InvestigationReports = () => {
     } catch (err: any) {
       console.error("Error checking investigation access:", err);
       if (err.response?.status === 403 || err.response?.status === 401) {
-        // If access is denied, try to request access
         await requestInvestigationAccess(organizationId);
       } else {
         setError("Failed to check investigation access.");
@@ -139,12 +129,11 @@ const InvestigationReports = () => {
     }
   };
 
-  // Request investigation access for the organization
   const requestInvestigationAccess = async (organizationId: number) => {
     try {
       await axios.put(
         `${baseUrl}/api/organization/organizations/${organizationId}/investigation-visibility?canView=true`,
-        {}, // Empty body for PUT request
+        {},
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -153,7 +142,6 @@ const InvestigationReports = () => {
         }
       );
 
-      // After granting access, fetch investigation orders
       await fetchInvestigationOrders();
       setHasAccess(true);
     } catch (err: any) {
@@ -167,7 +155,6 @@ const InvestigationReports = () => {
     }
   };
 
-  // Fetch investigation orders if access is granted
   const fetchInvestigationOrders = async () => {
     setLoading(true);
     setError("");
@@ -178,8 +165,8 @@ const InvestigationReports = () => {
       return;
     }
 
-    const organizationId = user?.id;
-    if (!organizationId) {
+    const organizationId = Number(user?.id);
+    if (!organizationId || isNaN(organizationId)) {
       setError("Organization ID not found.");
       setLoading(false);
       return;
@@ -189,19 +176,13 @@ const InvestigationReports = () => {
       const response = await axios.get(
         `${baseUrl}/api/organization/${organizationId}/investigation-orders`,
         {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         }
       );
 
       const sortedInvestigations = response.data.sort(
-        (a: InvestigationOrder, b: InvestigationOrder) => {
-          // Sort by orderDate in descending order (newest first)
-          return (
-            new Date(b.orderDate).getTime() - new Date(a.orderDate).getTime()
-          );
-        }
+        (a: InvestigationOrder, b: InvestigationOrder) =>
+          new Date(b.orderDate).getTime() - new Date(a.orderDate).getTime()
       );
 
       setInvestigations(sortedInvestigations);
@@ -238,8 +219,10 @@ const InvestigationReports = () => {
 
   const hasActiveFilters = searchTerm !== "" || doctorFilter !== "all";
 
-  // Total investigations count across all orders
-  const totalInvestigationsCount = investigations.reduce((total, order) => total + order.items.length, 0);
+  const totalInvestigationsCount = investigations.reduce(
+    (total, order) => total + order.items.length,
+    0
+  );
 
   // Access loading component
   if (accessLoading) {
