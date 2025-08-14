@@ -15,7 +15,7 @@ import {
   Wallet,
   Menu,
   Search,
-  Settings,
+  // Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -129,13 +129,13 @@ export function DashboardSidebar() {
       badge: null,
       color: "from-rose-500 to-pink-600",
     },
-    {
-      href: "/dashboard/settings",
-      icon: Settings,
-      title: "Settings",
-      badge: null,
-      color: "from-gray-500 to-slate-600",
-    },
+    // {
+    //   href: "/dashboard/settings",
+    //   icon: Settings,
+    //   title: "Settings",
+    //   badge: null,
+    //   color: "from-gray-500 to-slate-600",
+    // },
   ];
 
   if (!isMounted) return null;
