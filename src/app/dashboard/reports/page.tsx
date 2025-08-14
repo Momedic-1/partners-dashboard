@@ -1,8 +1,8 @@
-"use client"
+"use client";
 
-import { DashboardHeader } from "@/components/dashboard-header"
-import { ConsultationReports } from "@/components/consultation-reports"
-import { motion } from "framer-motion"
+import { DashboardHeader } from "@/components/dashboard-header";
+import { ConsultationReports } from "@/components/consultation-reports";
+import { motion } from "framer-motion";
 
 export default function ReportsPage() {
   return (
@@ -12,9 +12,12 @@ export default function ReportsPage() {
       transition={{ duration: 0.5 }}
       className="flex flex-col gap-6"
     >
-      <DashboardHeader heading="Reports" text="View consultation reports and statistics" />
+      <DashboardHeader
+        heading="Reports"
+        text="View consultation reports and statistics"
+      />
 
       <ConsultationReports />
     </motion.div>
-  )
+  );
 }
