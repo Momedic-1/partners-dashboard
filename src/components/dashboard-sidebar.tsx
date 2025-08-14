@@ -16,7 +16,6 @@ import {
   Menu,
   Search,
   Settings,
-  Bell,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -31,24 +30,30 @@ import {
 } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
 
+// ✅ Define the route type so `badge` always exists
+type Route = {
+  href: string;
+  icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
+  title: string;
+  badge?: number | null;
+  color: string;
+};
+
 export function DashboardSidebar() {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const { userProfile } = useUserProfile();
   const [isMounted, setIsMounted] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const [hoveredRoute, setHoveredRoute] = useState(null);
 
   useEffect(() => {
     setIsMounted(true);
 
-    // Check if sidebar state is saved in localStorage
     const savedState = localStorage.getItem("sidebarCollapsed");
     if (savedState) {
       setIsCollapsed(savedState === "true");
     }
 
-    // Handle mobile detection and sidebar state
     const handleResize = () => {
       const mobile = window.innerWidth < 768;
       setIsMobile(mobile);
@@ -63,11 +68,8 @@ export function DashboardSidebar() {
   }, []);
 
   const handleLogout = () => {
-    // Clear stored user data
     localStorage.removeItem("userData");
     localStorage.removeItem("token");
-
-    // Redirect to login page
     window.location.href = "/auth/login";
   };
 
@@ -77,7 +79,7 @@ export function DashboardSidebar() {
     localStorage.setItem("sidebarCollapsed", String(newState));
   };
 
-  const routes = [
+  const routes: Route[] = [
     {
       href: "/dashboard",
       icon: Home,
@@ -96,6 +98,7 @@ export function DashboardSidebar() {
       href: "/dashboard/users",
       icon: Users,
       title: "Users",
+      badge: null,
       color: "from-orange-500 to-red-600",
     },
     {
@@ -116,6 +119,7 @@ export function DashboardSidebar() {
       href: "/dashboard/investigations",
       icon: Search,
       title: "Investigations",
+      badge: null,
       color: "from-teal-500 to-cyan-600",
     },
     {
@@ -138,7 +142,7 @@ export function DashboardSidebar() {
 
   return (
     <>
-      {/* Mobile overlay with blur effect */}
+      {/* Mobile overlay */}
       <AnimatePresence>
         {!isCollapsed && isMobile && (
           <motion.div
@@ -171,46 +175,15 @@ export function DashboardSidebar() {
           "border-slate-200/60",
           isMobile && "md:relative"
         )}
-        style={{
-          backdropFilter: "blur(10px)",
-          borderRight: "1px solid rgba(148, 163, 184, 0.2)",
-        }}
       >
-        {/* Header with gradient background */}
-        <div className="flex h-18 items-center border-b px-4 bg-gradient-to-r from-[#020E7C] via-[#1e40af] to-[#3b82f6] relative overflow-hidden">
-          {/* Animated background particles */}
-          <div className="absolute inset-0 overflow-hidden">
-            {[...Array(3)].map((_, i) => (
-              <motion.div
-                key={i}
-                className="absolute w-2 h-2 bg-white/20 rounded-full"
-                animate={{
-                  x: [0, 100, 0],
-                  y: [0, -50, 0],
-                  opacity: [0, 1, 0],
-                }}
-                transition={{
-                  duration: 4 + i,
-                  repeat: Infinity,
-                  delay: i * 1.5,
-                }}
-                style={{
-                  left: `${20 + i * 30}%`,
-                  top: `${30 + i * 10}%`,
-                }}
-              />
-            ))}
-          </div>
-
-          <Link
-            href="/dashboard"
-            className="flex items-center gap-3 font-bold relative z-10"
-          >
+        {/* Header */}
+        <div className="flex h-18 items-center border-b px-4 bg-gradient-to-r from-[#020E7C] via-[#1e40af] to-[#3b82f6]">
+          <Link href="/dashboard" className="flex items-center gap-3 font-bold">
             <motion.div
               whileHover={{ rotate: 360, scale: 1.1 }}
               transition={{ duration: 0.6 }}
             >
-              <FileSpreadsheet className="h-7 w-7 text-white drop-shadow-lg" />
+              <FileSpreadsheet className="h-7 w-7 text-white" />
             </motion.div>
             <AnimatePresence>
               {!isCollapsed && (
@@ -218,13 +191,11 @@ export function DashboardSidebar() {
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
-                  transition={{ duration: 0.3, delay: 0.1 }}
+                  transition={{ duration: 0.3 }}
                   className="text-white"
                 >
-                  <span className="text-lg tracking-wide drop-shadow-md">
-                    Partner's Portal
-                  </span>
-                  <div className="text-xs opacity-90 font-normal">
+                  <span className="text-lg">Partner&#39;s Portal</span>
+                  <div className="text-xs opacity-90">
                     Healthcare Management
                   </div>
                 </motion.div>
@@ -232,147 +203,82 @@ export function DashboardSidebar() {
             </AnimatePresence>
           </Link>
 
-          <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="ml-auto hover:bg-white/20 cursor-pointer text-white relative z-10 backdrop-blur-sm"
-              onClick={toggleSidebar}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="ml-auto text-white"
+            onClick={toggleSidebar}
+          >
+            <motion.div
+              animate={{ rotate: isCollapsed ? 180 : 0 }}
+              transition={{ duration: 0.3 }}
             >
-              <motion.div
-                animate={{ rotate: isCollapsed ? 180 : 0 }}
-                transition={{ duration: 0.3 }}
-              >
-                {isCollapsed ? (
-                  <ChevronRight className="h-5 w-5" />
-                ) : (
-                  <ChevronLeft className="h-5 w-5" />
-                )}
-              </motion.div>
-            </Button>
-          </motion.div>
+              {isCollapsed ? (
+                <ChevronRight className="h-5 w-5" />
+              ) : (
+                <ChevronLeft className="h-5 w-5" />
+              )}
+            </motion.div>
+          </Button>
         </div>
 
-        {/* Navigation */}
-        <div className="flex-1 overflow-auto py-6 px-3 relative">
-          {/* Gradient overlay for scroll indication */}
-          <div className="absolute top-0 left-0 right-0 h-6 bg-gradient-to-b from-white/80 to-transparent pointer-events-none z-10" />
-          <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-white/80 to-transparent pointer-events-none z-10" />
-
+        {/* Nav */}
+        <div className="flex-1 overflow-auto py-6 px-3">
           <TooltipProvider delayDuration={100}>
             <nav className="grid items-start gap-2">
-              <AnimatePresence>
-                {routes.map((route, index) => (
-                  <motion.div
-                    key={route.href}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    transition={{ duration: 0.2, delay: index * 0.05 }}
-                  >
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Link
-                          href={route.href}
+              {routes.map((route, index) => (
+                <motion.div
+                  key={route.href}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.2, delay: index * 0.05 }}
+                >
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Link
+                        href={route.href}
+                        className={cn(
+                          "group flex items-center gap-4 rounded-xl px-4 py-3.5 transition-all duration-300",
+                          pathname === route.href
+                            ? "bg-gradient-to-r from-[#020E7C] to-[#1e40af] text-white"
+                            : "text-slate-600 hover:bg-white/80 hover:text-[#020E7C]"
+                        )}
+                        onClick={() => isMobile && toggleSidebar()}
+                      >
+                        <route.icon
                           className={cn(
-                            "group flex items-center gap-4 rounded-xl px-4 py-3.5 transition-all duration-300",
-                            "relative overflow-hidden backdrop-blur-sm",
+                            "h-5 w-5",
                             pathname === route.href
-                              ? "bg-gradient-to-r from-[#020E7C] to-[#1e40af] text-white shadow-lg shadow-[#020E7C]/25"
-                              : "text-slate-600 hover:bg-white/80 hover:text-[#020E7C] hover:shadow-md hover:shadow-slate-200/50",
-                            "border border-transparent hover:border-slate-200/60",
-                            "transform hover:scale-[1.02] hover:-translate-y-0.5"
+                              ? "text-white"
+                              : "text-slate-500 group-hover:text-[#020E7C]"
                           )}
-                          onClick={() => isMobile && toggleSidebar()}
-                          onMouseEnter={() => setHoveredRoute(route.href)}
-                          onMouseLeave={() => setHoveredRoute(null)}
-                        >
-                          {/* Active indicator */}
-                          {pathname === route.href && (
-                            <motion.div
-                              layoutId="activeIndicator"
-                              className="absolute left-0 top-0 bottom-0 w-1 bg-white rounded-r-full"
-                              transition={{
-                                type: "spring",
-                                damping: 25,
-                                stiffness: 200,
-                              }}
-                            />
-                          )}
-
-                          <motion.div
-                            whileHover={{ scale: 1.1, rotate: 5 }}
-                            transition={{ type: "spring", damping: 15 }}
-                          >
-                            <route.icon
-                              className={cn(
-                                "h-5 w-5 transition-colors duration-300",
-                                pathname === route.href
-                                  ? "text-white drop-shadow-sm"
-                                  : "text-slate-500 group-hover:text-[#020E7C]"
-                              )}
-                            />
-                          </motion.div>
-
-                          <AnimatePresence>
-                            {!isCollapsed && (
-                              <motion.div
-                                initial={{ opacity: 0, x: -10 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                exit={{ opacity: 0, x: -10 }}
-                                transition={{ duration: 0.2 }}
-                                className="flex-1 flex items-center justify-between"
-                              >
-                                <span className="font-semibold tracking-wide">
-                                  {route.title}
-                                </span>
-
-                                {route.badge && route.badge > 0 && (
-                                  <motion.div
-                                    initial={{ scale: 0 }}
-                                    animate={{ scale: 1 }}
-                                    whileHover={{ scale: 1.1 }}
-                                    transition={{ type: "spring", damping: 15 }}
-                                  >
-                                    <Badge
-                                      className={cn(
-                                        "ml-auto text-xs font-bold shadow-sm",
-                                        pathname === route.href
-                                          ? "bg-white/20 text-white border-white/30"
-                                          : "bg-gradient-to-r from-red-500 to-pink-500 text-white border-0"
-                                      )}
-                                    >
-                                      {route.badge}
-                                    </Badge>
-                                  </motion.div>
-                                )}
-                              </motion.div>
+                        />
+                        {!isCollapsed && (
+                          <div className="flex-1 flex items-center justify-between">
+                            <span className="font-semibold">{route.title}</span>
+                            {route.badge && route.badge > 0 && (
+                              <Badge className="ml-auto bg-gradient-to-r from-red-500 to-pink-500 text-white">
+                                {route.badge}
+                              </Badge>
                             )}
-                          </AnimatePresence>
-                        </Link>
-                      </TooltipTrigger>
-                      {isCollapsed && (
-                        <TooltipContent
-                          side="right"
-                          className="bg-slate-900 text-white border-slate-700 shadow-xl"
-                        >
-                          <p className="font-medium">{route.title}</p>
-                          {route.badge && (
-                            <Badge className="ml-2 bg-red-500 text-white">
-                              {route.badge}
-                            </Badge>
-                          )}
-                        </TooltipContent>
-                      )}
-                    </Tooltip>
-                  </motion.div>
-                ))}
-              </AnimatePresence>
+                          </div>
+                        )}
+                      </Link>
+                    </TooltipTrigger>
+                    {isCollapsed && (
+                      <TooltipContent side="right">
+                        <p>{route.title}</p>
+                        {route.badge && <Badge>{route.badge}</Badge>}
+                      </TooltipContent>
+                    )}
+                  </Tooltip>
+                </motion.div>
+              ))}
             </nav>
           </TooltipProvider>
         </div>
 
-        {/* User profile section with enhanced styling */}
+        {/* User */}
         <div className="mt-auto border-t border-slate-200/60 bg-gradient-to-r from-slate-50 to-white">
           <div className="p-4">
             <motion.div
@@ -401,9 +307,6 @@ export function DashboardSidebar() {
                   >
                     <p className="text-sm font-bold text-slate-900 truncate">
                       {userProfile?.firstName || "Partner"}
-                    </p>
-                    <p className="text-xs text-slate-500 truncate">
-                      Healthcare Provider
                     </p>
                     <div className="flex items-center gap-1 mt-1">
                       <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
