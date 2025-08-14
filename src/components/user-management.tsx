@@ -209,7 +209,7 @@ export function UserManagement() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="space-y-6 p-0 max-w-7xl mx-auto"
+      className="space-y-6 max-w-7xl mx-auto"
     >
       {/* Header Section */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -377,7 +377,7 @@ export function UserManagement() {
                                 {formatDate(u.dateUploaded)}
                               </TableCell>
                               <TableCell className="text-right pr-6">
-                                <DropdownMenu >
+                                <DropdownMenu>
                                   <DropdownMenuTrigger asChild>
                                     <Button
                                       variant="ghost"
@@ -387,7 +387,7 @@ export function UserManagement() {
                                       <MoreHorizontal className="h-4 w-4" />
                                       <span className="sr-only">Actions</span>
                                     </Button>
-                                  </DropdownMenuTrigger >
+                                  </DropdownMenuTrigger>
                                   <DropdownMenuContent
                                     align="end"
                                     className="w-48"
