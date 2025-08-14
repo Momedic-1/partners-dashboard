@@ -81,7 +81,6 @@ const PrescriptionReports = () => {
 
   const doctors = Array.from(new Set(prescriptions.map((p) => p.doctorName)));
 
-  // Check if organization has access to prescriptions
   const checkPrescriptionAccess = async () => {
     setAccessLoading(true);
     setError("");
@@ -100,9 +99,8 @@ const PrescriptionReports = () => {
     }
 
     try {
-      // First, check if the organization already has access by trying to fetch prescriptions
       const response = await axios.get(
-        `${baseUrl}/api/organization/${organizationId}/prescriptions`,
+        `${baseUrl}/api/organization/${Number(organizationId)}/prescriptions`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -110,13 +108,9 @@ const PrescriptionReports = () => {
         }
       );
 
-      // If successful, set access to true and set the prescriptions
       const sortedPrescriptions = response.data.sort(
-        (a: Prescription, b: Prescription) => {
-          return (
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-          );
-        }
+        (a: Prescription, b: Prescription) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
 
       setPrescriptions(sortedPrescriptions);
@@ -125,8 +119,7 @@ const PrescriptionReports = () => {
     } catch (err: any) {
       console.error("Error checking prescription access:", err);
       if (err.response?.status === 403 || err.response?.status === 401) {
-        // If access is denied, try to request access
-        await requestPrescriptionAccess(organizationId);
+        await requestPrescriptionAccess(Number(organizationId));
       } else {
         setError("Failed to check prescription access.");
         setLoading(false);
@@ -136,12 +129,11 @@ const PrescriptionReports = () => {
     }
   };
 
-  // Request prescription access for the organization
   const requestPrescriptionAccess = async (organizationId: number) => {
     try {
       await axios.put(
         `${baseUrl}/api/organization/${organizationId}/prescription-access?canView=true`,
-        {}, // Empty body for PUT request
+        {},
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -150,7 +142,6 @@ const PrescriptionReports = () => {
         }
       );
 
-      // After granting access, fetch prescriptions
       await fetchPrescriptions();
       setHasAccess(true);
     } catch (err: any) {
@@ -164,7 +155,6 @@ const PrescriptionReports = () => {
     }
   };
 
-  // Fetch prescriptions if access is granted
   const fetchPrescriptions = async () => {
     setLoading(true);
     setError("");
@@ -184,7 +174,7 @@ const PrescriptionReports = () => {
 
     try {
       const response = await axios.get(
-        `${baseUrl}/api/organization/${organizationId}/prescriptions`,
+        `${baseUrl}/api/organization/${Number(organizationId)}/prescriptions`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -193,12 +183,8 @@ const PrescriptionReports = () => {
       );
 
       const sortedPrescriptions = response.data.sort(
-        (a: Prescription, b: Prescription) => {
-          // Sort by createdAt in descending order (newest first)
-          return (
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-          );
-        }
+        (a: Prescription, b: Prescription) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
 
       setPrescriptions(sortedPrescriptions);
@@ -222,7 +208,6 @@ const PrescriptionReports = () => {
       p.patientEmail.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchDoctor = doctorFilter === "all" || p.doctorName === doctorFilter;
-
     return matchSearch && matchDoctor;
   });
 
