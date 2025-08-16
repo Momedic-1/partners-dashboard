@@ -1,46 +1,50 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState, useEffect } from "react"
+import { useState, useEffect } from "react";
 // import { ModeToggle } from "@/components/mode-toggle"
-import { Search } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { Search } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 // import { Badge } from "@/components/ui/badge"
 // import { useNotifications } from "@/components/notifications-context"
-import { motion } from "framer-motion"
+import { motion } from "framer-motion";
 // import { useRouter } from "next/navigation"
 
 interface DashboardHeaderProps {
-  heading: string
-  text?: string
-  children?: React.ReactNode
+  heading: string;
+  text?: string;
+  children?: React.ReactNode;
 }
 
-export function DashboardHeader({ heading, text, children }: DashboardHeaderProps) {
+export function DashboardHeader({
+  heading,
+  text,
+  children,
+}: DashboardHeaderProps) {
   // const { unreadCount } = useNotifications()
-  const [showSearch, setShowSearch] = useState(false)
-  const [searchQuery, setSearchQuery] = useState("")
+  const [showSearch, setShowSearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   // const router = useRouter()
-  const [isMounted, setIsMounted] = useState(false)
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
-    setIsMounted(true)
-  }, [])
+    setIsMounted(true);
+  }, []);
 
   const toggleSearch = () => {
-    setShowSearch(!showSearch)
+    setShowSearch(!showSearch);
     if (showSearch) {
-      setSearchQuery("")
+      setSearchQuery("");
     }
-  }
+  };
 
   // const handleNotificationsClick = () => {
   //   router.push("/dashboard/notifications")
   // }
 
-  if (!isMounted) return null
+  if (!isMounted) return null;
 
   return (
     <div className="flex flex-col gap-4 mb-6">
@@ -61,7 +65,12 @@ export function DashboardHeader({ heading, text, children }: DashboardHeaderProp
           className="flex items-center gap-2"
         >
           {children}
-          <Button className="cursor-pointer" variant="outline" size="icon" onClick={toggleSearch}>
+          <Button
+            className="cursor-pointer"
+            variant="outline"
+            size="icon"
+            onClick={toggleSearch}
+          >
             <Search className="h-[1.2rem] w-[1.2rem]" />
           </Button>
           {/* <Button variant="outline" size="icon" onClick={handleNotificationsClick} className="relative">
@@ -93,5 +102,5 @@ export function DashboardHeader({ heading, text, children }: DashboardHeaderProp
         </motion.div>
       )}
     </div>
-  )
+  );
 }
