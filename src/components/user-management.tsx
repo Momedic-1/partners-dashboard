@@ -17,13 +17,10 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "@/components/ui/use-toast";
 import {
-  // Edit,
   MoreHorizontal,
   Search,
   Trash2,
   Filter,
-  // Download,
-  // UserPlus,
   Mail,
   Phone,
   Calendar,
@@ -57,7 +54,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  // DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   Select,
@@ -71,11 +67,11 @@ import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/AuthContext";
 
 interface User {
-  id: string;
+  userId: number; // Changed from id to userId to match API response
   fullName: string;
   email: string;
   phone: string;
-  dateUploaded: string;
+  dateUploaded: string | null; // Changed to allow null values
   avatarUrl?: string;
 }
 
@@ -94,13 +90,13 @@ export function UserManagement() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [userToDelete, setUserToDelete] = useState<string | null>(null);
+  const [userToDelete, setUserToDelete] = useState<number | null>(null); // Changed to number
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
   const [isCallModalOpen, setIsCallModalOpen] = useState(false);
-  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [selectedUserId, setSelectedUserId] = useState<number | null>(null); // Changed to number
   const [callLimit, setCallLimit] = useState<number>(5);
   const [callPeriod, setCallPeriod] = useState<string>("DAILY");
   const [callAccessEnabled, setCallAccessEnabled] = useState(true);
@@ -130,9 +126,10 @@ export function UserManagement() {
         );
 
         // Sort users by dateUploaded in descending order (most recent first)
+        // Handle null dates properly
         const sortedUsers = res.data.content.sort((a, b) => {
-          const dateA = new Date(a.dateUploaded || 0).getTime();
-          const dateB = new Date(b.dateUploaded || 0).getTime();
+          const dateA = a.dateUploaded ? new Date(a.dateUploaded).getTime() : 0;
+          const dateB = b.dateUploaded ? new Date(b.dateUploaded).getTime() : 0;
           return dateB - dateA; // Descending order
         });
 
@@ -158,8 +155,8 @@ export function UserManagement() {
       .toUpperCase();
   };
 
-  const formatDate = (dateString: string) => {
-    if (!dateString) return "-";
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return "Not specified";
     const date = new Date(dateString);
     return new Intl.DateTimeFormat("en-US", {
       year: "numeric",
@@ -169,16 +166,19 @@ export function UserManagement() {
   };
 
   const formatPhoneNumber = (phone: string) => {
-    if (!phone) return "-";
+    if (!phone || phone === "string") return "-";
     // Simple phone formatting for display
-    return phone.replace(/(\+\d{1})(\d{3})(\d{3})(\d{4})/, "$1 ($2) $3-$4");
+    if (phone.length === 10) {
+      return phone.replace(/(\d{3})(\d{3})(\d{4})/, "($1) $2-$3");
+    }
+    return phone; // Return as-is if not standard format
   };
 
   const handlePageChange = (page: number) => {
     if (page >= 1 && page <= totalPages) setCurrentPage(page);
   };
 
-  const confirmDelete = (userId: string) => {
+  const confirmDelete = (userId: number) => {
     setUserToDelete(userId);
     setIsDeleteDialogOpen(true);
   };
@@ -196,7 +196,7 @@ export function UserManagement() {
         }
       );
 
-      setUsers((prev) => prev.filter((u) => u.id !== userToDelete));
+      setUsers((prev) => prev.filter((u) => u.userId !== userToDelete));
       toast({
         title: "User deleted",
         description: "The user has been successfully removed.",
@@ -214,8 +214,8 @@ export function UserManagement() {
     }
   };
 
-  const openCallModal = (userId: string) => {
-    console.log("Opening call modal for user:", userId); // Debug log
+  const openCallModal = (userId: number) => {
+    console.log("Opening call modal for user:", userId);
     setSelectedUserId(userId);
     setCallLimit(5); // Reset to default values
     setCallPeriod("DAILY");
@@ -240,22 +240,24 @@ export function UserManagement() {
         }
       );
 
-      // Set call limit and period
-      await axios.post(
-        `${baseUrl}/api/call-access/${user.id}/patient/${selectedUserId}/set-call-limit?callLimit=${callLimit}&period=${callPeriod}`,
-        {},
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      // Set call limit and period only if call access is enabled
+      if (callAccessEnabled) {
+        await axios.post(
+          `${baseUrl}/api/call-access/${user.id}/patient/${selectedUserId}/set-call-limit?callLimit=${callLimit}&period=${callPeriod}`,
+          {},
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+      }
 
       toast({
         title: "Call settings updated",
-        description: `Call access has been ${
-          callAccessEnabled ? "enabled" : "disabled"
-        } with a limit of ${callLimit} calls per ${callPeriod.toLowerCase()}.`,
+        description: callAccessEnabled 
+          ? `Call access enabled with a limit of ${callLimit} calls per ${callPeriod.toLowerCase()}.`
+          : "Call access has been disabled.",
       });
 
       setIsCallModalOpen(false);
@@ -281,8 +283,8 @@ export function UserManagement() {
         (u.phone?.includes(searchTerm) ?? false)
     )
     .sort((a, b) => {
-      const dateA = new Date(a.dateUploaded || 0).getTime();
-      const dateB = new Date(b.dateUploaded || 0).getTime();
+      const dateA = a.dateUploaded ? new Date(a.dateUploaded).getTime() : 0;
+      const dateB = b.dateUploaded ? new Date(b.dateUploaded).getTime() : 0;
       return dateB - dateA; // Most recent first
     });
 
@@ -300,22 +302,9 @@ export function UserManagement() {
             User Management
           </h1>
           <p className="text-gray-500">
-            Manage and monitor your organization&#39;s users
+            Manage and monitor your organization's users
           </p>
         </div>
-
-        {/* <div className="flex items-center gap-2">
-          <Button variant="outline" className="gap-2 hidden sm:flex">
-            <Download className="h-4 w-4" />
-            Export
-          </Button>
-
-          <Button className="gap-2 bg-blue-600 hover:bg-blue-700">
-            <UserPlus className="h-4 w-4" />
-            <span className="hidden sm:inline">Add User</span>
-            <span className="sm:hidden">Add</span>
-          </Button>
-        </div> */}
       </div>
 
       {/* Main Table Card */}
@@ -329,7 +318,7 @@ export function UserManagement() {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
                 <CardTitle className="text-xl font-semibold">
-                  All Users
+                  All Users ({users.length})
                 </CardTitle>
               </div>
 
@@ -398,7 +387,7 @@ export function UserManagement() {
                     <TableBody>
                       {filtered.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={5} className="text-center py-12">
+                          <TableCell colSpan={4} className="text-center py-12">
                             <div className="flex flex-col items-center text-gray-500">
                               <Search className="h-12 w-12 mb-4 text-gray-300" />
                               <p className="text-lg font-medium">
@@ -414,7 +403,7 @@ export function UserManagement() {
                         <AnimatePresence>
                           {filtered.map((u, i) => (
                             <motion.tr
-                              key={u.id}
+                              key={u.userId}
                               initial={{ opacity: 0, y: 10 }}
                               animate={{ opacity: 1, y: 0 }}
                               exit={{ opacity: 0, y: -10 }}
@@ -435,6 +424,9 @@ export function UserManagement() {
                                   <div className="min-w-0">
                                     <p className="font-semibold text-gray-900 truncate">
                                       {u.fullName || "Unnamed User"}
+                                    </p>
+                                    <p className="text-xs text-gray-500">
+                                      ID: {u.userId}
                                     </p>
                                   </div>
                                 </div>
@@ -482,19 +474,15 @@ export function UserManagement() {
                                       className="gap-2 cursor-pointer"
                                       onClick={(e) => {
                                         e.preventDefault();
-                                        openCallModal(u.id);
+                                        openCallModal(u.userId);
                                       }}
                                     >
                                       <PhoneCall className="h-4 w-4" />
-                                      Set Call
+                                      Set Call Settings
                                     </DropdownMenuItem>
-                                    {/* <DropdownMenuItem className="gap-2">
-                                      <Edit className="h-4 w-4" />
-                                      Edit User
-                                    </DropdownMenuItem> */}
                                     <DropdownMenuItem
                                       className="gap-2 text-red-600 focus:text-red-600"
-                                      onClick={() => confirmDelete(u.id)}
+                                      onClick={() => confirmDelete(u.userId)}
                                     >
                                       <Trash2 className="h-4 w-4" />
                                       Delete User
@@ -526,7 +514,7 @@ export function UserManagement() {
                     <AnimatePresence>
                       {filtered.map((u, i) => (
                         <motion.div
-                          key={u.id}
+                          key={u.userId}
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, y: -20 }}
@@ -551,6 +539,9 @@ export function UserManagement() {
                                         {u.fullName || "Unnamed User"}
                                       </h3>
                                     </div>
+                                    <p className="text-xs text-gray-500 mb-2">
+                                      ID: {u.userId}
+                                    </p>
                                     <div className="space-y-1">
                                       <div className="flex items-center gap-2 text-sm text-gray-600">
                                         <Mail className="h-3 w-3" />
@@ -589,15 +580,15 @@ export function UserManagement() {
                                       className="gap-2 cursor-pointer"
                                       onClick={(e) => {
                                         e.preventDefault();
-                                        openCallModal(u.id);
+                                        openCallModal(u.userId);
                                       }}
                                     >
                                       <PhoneCall className="h-4 w-4" />
-                                      Set Call
+                                      Set Call Settings
                                     </DropdownMenuItem>
                                     <DropdownMenuItem
                                       className="gap-2 text-red-600"
-                                      onClick={() => confirmDelete(u.id)}
+                                      onClick={() => confirmDelete(u.userId)}
                                     >
                                       <Trash2 className="h-4 w-4" />
                                       Delete
@@ -693,15 +684,16 @@ export function UserManagement() {
         </Card>
       </motion.div>
 
+      {/* Call Settings Modal */}
       <Dialog open={isCallModalOpen} onOpenChange={setIsCallModalOpen}>
         <DialogContent className="sm:max-w-[500px] z-50">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Settings className="h-5 w-5" />
-              Call Settings
+              Call Settings Configuration
             </DialogTitle>
             <DialogDescription>
-              Configure call access and limits for this user
+              Configure call access and limits for this user. These settings control how many calls the user can make within the specified period.
             </DialogDescription>
           </DialogHeader>
 
@@ -764,6 +756,7 @@ export function UserManagement() {
                       <SelectItem value="DAILY">Daily</SelectItem>
                       <SelectItem value="WEEKLY">Weekly</SelectItem>
                       <SelectItem value="MONTHLY">Monthly</SelectItem>
+                      <SelectItem value="QUARTERLY">Quarterly</SelectItem>
                       <SelectItem value="YEARLY">Yearly</SelectItem>
                     </SelectContent>
                   </Select>
@@ -814,7 +807,7 @@ export function UserManagement() {
               Delete User Account
             </AlertDialogTitle>
             <AlertDialogDescription className="text-gray-600">
-              This action cannot be undone. The user&#39;s account and all
+              This action cannot be undone. The user's account and all
               associated data will be permanently removed from the system.
             </AlertDialogDescription>
           </AlertDialogHeader>
