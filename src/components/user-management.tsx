@@ -97,7 +97,7 @@ export function UserManagement() {
   const [totalPages, setTotalPages] = useState(1);
   const [isCallModalOpen, setIsCallModalOpen] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null); // Changed to number
-  const [callLimit, setCallLimit] = useState<number>(5);
+  const [callLimit, setCallLimit] = useState<number>();
   const [callPeriod, setCallPeriod] = useState<string>("DAILY");
   const [callAccessEnabled, setCallAccessEnabled] = useState(true);
   const [isUpdatingCallSettings, setIsUpdatingCallSettings] = useState(false);
@@ -214,12 +214,35 @@ export function UserManagement() {
     }
   };
 
-  const openCallModal = (userId: number) => {
+  const openCallModal = async (userId: number) => {
     console.log("Opening call modal for user:", userId);
     setSelectedUserId(userId);
-    setCallLimit(5); // Reset to default values
+    setCallLimit(0);
     setCallPeriod("DAILY");
     setCallAccessEnabled(true);
+
+    // Optional: Try to fetch existing call settings first
+    try {
+      if (user && token) {
+        console.log(
+          "Attempting to fetch existing call settings for user:",
+          userId
+        );
+        // You might want to add an API call here to get existing settings
+        // const response = await axios.get(`${baseUrl}/api/call-access/${user.id}/patient/${userId}`);
+        // if (response.data) {
+        //   setCallLimit(response.data.callLimit || 5);
+        //   setCallPeriod(response.data.period || "DAILY");
+        //   setCallAccessEnabled(response.data.callAccessEnabled ?? true);
+        // }
+      }
+    } catch (error) {
+      console.log(
+        "Could not fetch existing call settings, using defaults:",
+        error
+      );
+    }
+
     setIsCallModalOpen(true);
   };
 
@@ -229,8 +252,16 @@ export function UserManagement() {
     setIsUpdatingCallSettings(true);
 
     try {
-      // Set call access enabled/disabled
-      await axios.patch(
+      console.log("Attempting to update call settings for:", {
+        organizationId: user.id,
+        patientId: selectedUserId,
+        callAccessEnabled,
+        callLimit,
+        callPeriod,
+      });
+
+      // First, try to set call access enabled/disabled
+      const callAccessResponse = await axios.patch(
         `${baseUrl}/api/call-access/${user.id}/patient/${selectedUserId}/call-access-enabled?enabled=${callAccessEnabled}`,
         {},
         {
@@ -240,9 +271,11 @@ export function UserManagement() {
         }
       );
 
+      console.log("Call access response:", callAccessResponse.data);
+
       // Set call limit and period only if call access is enabled
       if (callAccessEnabled) {
-        await axios.post(
+        const callLimitResponse = await axios.post(
           `${baseUrl}/api/call-access/${user.id}/patient/${selectedUserId}/set-call-limit?callLimit=${callLimit}&period=${callPeriod}`,
           {},
           {
@@ -251,22 +284,39 @@ export function UserManagement() {
             },
           }
         );
+
+        console.log("Call limit response:", callLimitResponse.data);
       }
 
       toast({
         title: "Call settings updated",
-        description: callAccessEnabled 
+        description: callAccessEnabled
           ? `Call access enabled with a limit of ${callLimit} calls per ${callPeriod.toLowerCase()}.`
           : "Call access has been disabled.",
       });
 
       setIsCallModalOpen(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating call settings:", error);
+
+      let errorMessage = "Unable to update call settings. Please try again.";
+
+      if (error.response?.data?.exceptionMessage) {
+        errorMessage = error.response.data.exceptionMessage;
+
+        // Handle specific error cases
+        if (errorMessage.includes("Patient not found")) {
+          errorMessage =
+            "User not found in the system. The user may need to be registered as a patient first.";
+        }
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      }
+
       toast({
         variant: "destructive",
         title: "Update failed",
-        description: "Unable to update call settings. Please try again.",
+        description: errorMessage,
       });
     } finally {
       setIsUpdatingCallSettings(false);
@@ -302,7 +352,7 @@ export function UserManagement() {
             User Management
           </h1>
           <p className="text-gray-500">
-            Manage and monitor your organization's users
+            Manage and monitor your organization&#39;s users
           </p>
         </div>
       </div>
@@ -693,7 +743,9 @@ export function UserManagement() {
               Call Settings Configuration
             </DialogTitle>
             <DialogDescription>
-              Configure call access and limits for this user. These settings control how many calls the user can make within the specified period.
+              Configure call access and limits for this user. These settings
+              control how many calls the user can make within the specified
+              period.
             </DialogDescription>
           </DialogHeader>
 
@@ -767,8 +819,8 @@ export function UserManagement() {
                 <p className="text-sm text-blue-800">
                   <strong>Summary:</strong>{" "}
                   {callAccessEnabled
-                    ? `User can make ${callLimit} calls per ${callPeriod.toLowerCase()}`
-                    : "User cannot make any calls"}
+                    ? `{u.fullName} can make ${callLimit} calls per ${callPeriod.toLowerCase()}`
+                    : "{u.fullName} cannot make any calls"}
                 </p>
               </div>
             </div>
@@ -807,7 +859,7 @@ export function UserManagement() {
               Delete User Account
             </AlertDialogTitle>
             <AlertDialogDescription className="text-gray-600">
-              This action cannot be undone. The user's account and all
+              This action cannot be undone. The user&#39;s account and all
               associated data will be permanently removed from the system.
             </AlertDialogDescription>
           </AlertDialogHeader>
