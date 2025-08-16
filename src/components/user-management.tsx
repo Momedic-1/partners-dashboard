@@ -17,7 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "@/components/ui/use-toast";
 import {
-  Edit,
+  // Edit,
   MoreHorizontal,
   Search,
   Trash2,
@@ -29,6 +29,8 @@ import {
   Calendar,
   ChevronLeft,
   ChevronRight,
+  PhoneCall,
+  Settings,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -49,6 +51,23 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  // DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/AuthContext";
 
 interface User {
@@ -80,6 +99,12 @@ export function UserManagement() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
+  const [isCallModalOpen, setIsCallModalOpen] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [callLimit, setCallLimit] = useState<number>(5);
+  const [callPeriod, setCallPeriod] = useState<string>("DAILY");
+  const [callAccessEnabled, setCallAccessEnabled] = useState(true);
+  const [isUpdatingCallSettings, setIsUpdatingCallSettings] = useState(false);
   const { user, token } = useAuth();
 
   // Fetch users from API
@@ -186,6 +211,63 @@ export function UserManagement() {
     } finally {
       setUserToDelete(null);
       setIsDeleteDialogOpen(false);
+    }
+  };
+
+  const openCallModal = (userId: string) => {
+    console.log("Opening call modal for user:", userId); // Debug log
+    setSelectedUserId(userId);
+    setCallLimit(5); // Reset to default values
+    setCallPeriod("DAILY");
+    setCallAccessEnabled(true);
+    setIsCallModalOpen(true);
+  };
+
+  const handleCallSettingsUpdate = async () => {
+    if (!selectedUserId || !user || !token) return;
+
+    setIsUpdatingCallSettings(true);
+
+    try {
+      // Set call access enabled/disabled
+      await axios.patch(
+        `${baseUrl}/api/call-access/${user.id}/patient/${selectedUserId}/call-access-enabled?enabled=${callAccessEnabled}`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      // Set call limit and period
+      await axios.post(
+        `${baseUrl}/api/call-access/${user.id}/patient/${selectedUserId}/set-call-limit?callLimit=${callLimit}&period=${callPeriod}`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      toast({
+        title: "Call settings updated",
+        description: `Call access has been ${
+          callAccessEnabled ? "enabled" : "disabled"
+        } with a limit of ${callLimit} calls per ${callPeriod.toLowerCase()}.`,
+      });
+
+      setIsCallModalOpen(false);
+    } catch (error) {
+      console.error("Error updating call settings:", error);
+      toast({
+        variant: "destructive",
+        title: "Update failed",
+        description: "Unable to update call settings. Please try again.",
+      });
+    } finally {
+      setIsUpdatingCallSettings(false);
     }
   };
 
@@ -396,10 +478,20 @@ export function UserManagement() {
                                       Actions
                                     </DropdownMenuLabel>
                                     <DropdownMenuSeparator />
-                                    <DropdownMenuItem className="gap-2">
+                                    <DropdownMenuItem
+                                      className="gap-2 cursor-pointer"
+                                      onClick={(e) => {
+                                        e.preventDefault();
+                                        openCallModal(u.id);
+                                      }}
+                                    >
+                                      <PhoneCall className="h-4 w-4" />
+                                      Set Call
+                                    </DropdownMenuItem>
+                                    {/* <DropdownMenuItem className="gap-2">
                                       <Edit className="h-4 w-4" />
                                       Edit User
-                                    </DropdownMenuItem>
+                                    </DropdownMenuItem> */}
                                     <DropdownMenuItem
                                       className="gap-2 text-red-600 focus:text-red-600"
                                       onClick={() => confirmDelete(u.id)}
@@ -493,9 +585,15 @@ export function UserManagement() {
                                     </Button>
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end">
-                                    <DropdownMenuItem className="gap-2">
-                                      <Edit className="h-4 w-4" />
-                                      Edit
+                                    <DropdownMenuItem
+                                      className="gap-2 cursor-pointer"
+                                      onClick={(e) => {
+                                        e.preventDefault();
+                                        openCallModal(u.id);
+                                      }}
+                                    >
+                                      <PhoneCall className="h-4 w-4" />
+                                      Set Call
                                     </DropdownMenuItem>
                                     <DropdownMenuItem
                                       className="gap-2 text-red-600"
@@ -594,6 +692,116 @@ export function UserManagement() {
           </CardContent>
         </Card>
       </motion.div>
+
+      <Dialog open={isCallModalOpen} onOpenChange={setIsCallModalOpen}>
+        <DialogContent className="sm:max-w-[500px] z-50">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Settings className="h-5 w-5" />
+              Call Settings
+            </DialogTitle>
+            <DialogDescription>
+              Configure call access and limits for this user
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6 py-4">
+            {/* Call Access Toggle */}
+            <div className="space-y-2">
+              <Label className="text-base font-medium">Call Access</Label>
+              <div className="flex items-center justify-between p-4 border rounded-lg">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">
+                    {callAccessEnabled ? "Enabled" : "Disabled"}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {callAccessEnabled
+                      ? "User can make calls within the set limits"
+                      : "User cannot make any calls"}
+                  </p>
+                </div>
+                <Switch
+                  checked={callAccessEnabled}
+                  onCheckedChange={setCallAccessEnabled}
+                />
+              </div>
+            </div>
+
+            {/* Call Limit Settings */}
+            <div className="space-y-4">
+              <Label className="text-base font-medium">Call Limits</Label>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="callLimit" className="text-sm">
+                    Number of Calls
+                  </Label>
+                  <Input
+                    id="callLimit"
+                    type="number"
+                    min="1"
+                    max="100"
+                    value={callLimit}
+                    onChange={(e) => setCallLimit(Number(e.target.value))}
+                    className="w-full"
+                    disabled={!callAccessEnabled}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="period" className="text-sm">
+                    Period
+                  </Label>
+                  <Select
+                    value={callPeriod}
+                    onValueChange={setCallPeriod}
+                    disabled={!callAccessEnabled}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="DAILY">Daily</SelectItem>
+                      <SelectItem value="WEEKLY">Weekly</SelectItem>
+                      <SelectItem value="MONTHLY">Monthly</SelectItem>
+                      <SelectItem value="YEARLY">Yearly</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-sm text-blue-800">
+                  <strong>Summary:</strong>{" "}
+                  {callAccessEnabled
+                    ? `User can make ${callLimit} calls per ${callPeriod.toLowerCase()}`
+                    : "User cannot make any calls"}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-4 border-t">
+            <Button
+              variant="outline"
+              onClick={() => setIsCallModalOpen(false)}
+              disabled={isUpdatingCallSettings}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleCallSettingsUpdate}
+              disabled={isUpdatingCallSettings}
+              className="gap-2"
+            >
+              {isUpdatingCallSettings && (
+                <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+              )}
+              Update Settings
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog

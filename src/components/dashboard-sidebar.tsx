@@ -370,7 +370,7 @@ export function DashboardSidebar() {
       </motion.div>
 
       {/* Enhanced mobile menu button */}
-      {isMobile && (
+      {/* {isMobile && (
         <motion.div
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
@@ -392,7 +392,30 @@ export function DashboardSidebar() {
             </motion.div>
           </Button>
         </motion.div>
-      )}
+      )} */}
+      {isMobile && (
+  <motion.div
+    initial={{ scale: 0 }}
+    animate={{ scale: 1 }}
+    whileHover={{ scale: 1.1 }}
+    whileTap={{ scale: 0.95 }}
+    className="fixed top-4 left-4 z-50 md:hidden"
+  >
+    <Button
+      variant="ghost"
+      size="icon"
+className="bg-transparent text-white/50 hover:bg-white/5 hover:text-white/70 backdrop-blur-sm border border-white/10"
+      onClick={toggleSidebar}
+    >
+      <motion.div
+        animate={{ rotate: isCollapsed ? 0 : 180 }}
+        transition={{ duration: 0.3 }}
+      >
+        <Menu className="h-5 w-5" />
+      </motion.div>
+    </Button>
+  </motion.div>
+)}
     </>
   );
 }
