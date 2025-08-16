@@ -17,18 +17,17 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "@/components/ui/use-toast";
 import {
-  Edit,
   MoreHorizontal,
   Search,
   Trash2,
   Filter,
-  // Download,
-  // UserPlus,
   Mail,
   Phone,
   Calendar,
   ChevronLeft,
   ChevronRight,
+  PhoneCall,
+  Settings,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -49,14 +48,30 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/AuthContext";
 
 interface User {
-  id: string;
+  userId: number; // Changed from id to userId to match API response
   fullName: string;
   email: string;
   phone: string;
-  dateUploaded: string;
+  dateUploaded: string | null; // Changed to allow null values
   avatarUrl?: string;
 }
 
@@ -75,11 +90,19 @@ export function UserManagement() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [userToDelete, setUserToDelete] = useState<string | null>(null);
+  const [userToDelete, setUserToDelete] = useState<number | null>(null); // Changed to number
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
+  const [isCallModalOpen, setIsCallModalOpen] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState<number | null>(null); // Changed to number
+  const [callLimit, setCallLimit] = useState<number>();
+  const [callPeriod, setCallPeriod] = useState<string>("DAILY");
+  const [callAccessEnabled, setCallAccessEnabled] = useState(true);
+  const [isUpdatingCallSettings, setIsUpdatingCallSettings] = useState(false);
+  const selectedUser = users.find((user) => user.userId === selectedUserId);
+  const selectedUserName = selectedUser?.fullName || "User";
   const { user, token } = useAuth();
 
   // Fetch users from API
@@ -105,9 +128,10 @@ export function UserManagement() {
         );
 
         // Sort users by dateUploaded in descending order (most recent first)
+        // Handle null dates properly
         const sortedUsers = res.data.content.sort((a, b) => {
-          const dateA = new Date(a.dateUploaded || 0).getTime();
-          const dateB = new Date(b.dateUploaded || 0).getTime();
+          const dateA = a.dateUploaded ? new Date(a.dateUploaded).getTime() : 0;
+          const dateB = b.dateUploaded ? new Date(b.dateUploaded).getTime() : 0;
           return dateB - dateA; // Descending order
         });
 
@@ -133,8 +157,8 @@ export function UserManagement() {
       .toUpperCase();
   };
 
-  const formatDate = (dateString: string) => {
-    if (!dateString) return "-";
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return "Not specified";
     const date = new Date(dateString);
     return new Intl.DateTimeFormat("en-US", {
       year: "numeric",
@@ -144,16 +168,19 @@ export function UserManagement() {
   };
 
   const formatPhoneNumber = (phone: string) => {
-    if (!phone) return "-";
+    if (!phone || phone === "string") return "-";
     // Simple phone formatting for display
-    return phone.replace(/(\+\d{1})(\d{3})(\d{3})(\d{4})/, "$1 ($2) $3-$4");
+    if (phone.length === 10) {
+      return phone.replace(/(\d{3})(\d{3})(\d{4})/, "($1) $2-$3");
+    }
+    return phone; // Return as-is if not standard format
   };
 
   const handlePageChange = (page: number) => {
     if (page >= 1 && page <= totalPages) setCurrentPage(page);
   };
 
-  const confirmDelete = (userId: string) => {
+  const confirmDelete = (userId: number) => {
     setUserToDelete(userId);
     setIsDeleteDialogOpen(true);
   };
@@ -171,7 +198,7 @@ export function UserManagement() {
         }
       );
 
-      setUsers((prev) => prev.filter((u) => u.id !== userToDelete));
+      setUsers((prev) => prev.filter((u) => u.userId !== userToDelete));
       toast({
         title: "User deleted",
         description: "The user has been successfully removed.",
@@ -189,6 +216,115 @@ export function UserManagement() {
     }
   };
 
+  const openCallModal = async (userId: number) => {
+    console.log("Opening call modal for user:", userId);
+    setSelectedUserId(userId);
+    setCallLimit(0);
+    setCallPeriod("DAILY");
+    setCallAccessEnabled(true);
+
+    // Optional: Try to fetch existing call settings first
+    try {
+      if (user && token) {
+        console.log(
+          "Attempting to fetch existing call settings for user:",
+          userId
+        );
+        // You might want to add an API call here to get existing settings
+        // const response = await axios.get(`${baseUrl}/api/call-access/${user.id}/patient/${userId}`);
+        // if (response.data) {
+        //   setCallLimit(response.data.callLimit || 5);
+        //   setCallPeriod(response.data.period || "DAILY");
+        //   setCallAccessEnabled(response.data.callAccessEnabled ?? true);
+        // }
+      }
+    } catch (error) {
+      console.log(
+        "Could not fetch existing call settings, using defaults:",
+        error
+      );
+    }
+
+    setIsCallModalOpen(true);
+  };
+
+  const handleCallSettingsUpdate = async () => {
+    if (!selectedUserId || !user || !token) return;
+
+    setIsUpdatingCallSettings(true);
+
+    try {
+      console.log("Attempting to update call settings for:", {
+        organizationId: user.id,
+        patientId: selectedUserId,
+        callAccessEnabled,
+        callLimit,
+        callPeriod,
+      });
+
+      // First, try to set call access enabled/disabled
+      const callAccessResponse = await axios.patch(
+        `${baseUrl}/api/call-access/${user.id}/patient/${selectedUserId}/call-access-enabled?enabled=${callAccessEnabled}`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      console.log("Call access response:", callAccessResponse.data);
+
+      // Set call limit and period only if call access is enabled
+      if (callAccessEnabled) {
+        const callLimitResponse = await axios.post(
+          `${baseUrl}/api/call-access/${user.id}/patient/${selectedUserId}/set-call-limit?callLimit=${callLimit}&period=${callPeriod}`,
+          {},
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        console.log("Call limit response:", callLimitResponse.data);
+      }
+
+      toast({
+        title: "Call settings updated",
+        description: callAccessEnabled
+          ? `Call access enabled with a limit of ${callLimit} calls per ${callPeriod.toLowerCase()}.`
+          : "Call access has been disabled.",
+      });
+
+      setIsCallModalOpen(false);
+    } catch (error: any) {
+      console.error("Error updating call settings:", error);
+
+      let errorMessage = "Unable to update call settings. Please try again.";
+
+      if (error.response?.data?.exceptionMessage) {
+        errorMessage = error.response.data.exceptionMessage;
+
+        // Handle specific error cases
+        if (errorMessage.includes("Patient not found")) {
+          errorMessage =
+            "User not found in the system. The user may need to be registered as a patient first.";
+        }
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      }
+
+      toast({
+        variant: "destructive",
+        title: "Update failed",
+        description: errorMessage,
+      });
+    } finally {
+      setIsUpdatingCallSettings(false);
+    }
+  };
+
   // Apply filtering and sorting
   const filtered = users
     .filter(
@@ -199,8 +335,8 @@ export function UserManagement() {
         (u.phone?.includes(searchTerm) ?? false)
     )
     .sort((a, b) => {
-      const dateA = new Date(a.dateUploaded || 0).getTime();
-      const dateB = new Date(b.dateUploaded || 0).getTime();
+      const dateA = a.dateUploaded ? new Date(a.dateUploaded).getTime() : 0;
+      const dateB = b.dateUploaded ? new Date(b.dateUploaded).getTime() : 0;
       return dateB - dateA; // Most recent first
     });
 
@@ -221,19 +357,6 @@ export function UserManagement() {
             Manage and monitor your organization&#39;s users
           </p>
         </div>
-
-        {/* <div className="flex items-center gap-2">
-          <Button variant="outline" className="gap-2 hidden sm:flex">
-            <Download className="h-4 w-4" />
-            Export
-          </Button>
-
-          <Button className="gap-2 bg-blue-600 hover:bg-blue-700">
-            <UserPlus className="h-4 w-4" />
-            <span className="hidden sm:inline">Add User</span>
-            <span className="sm:hidden">Add</span>
-          </Button>
-        </div> */}
       </div>
 
       {/* Main Table Card */}
@@ -247,7 +370,7 @@ export function UserManagement() {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
                 <CardTitle className="text-xl font-semibold">
-                  All Users
+                  All Users ({users.length})
                 </CardTitle>
               </div>
 
@@ -316,7 +439,7 @@ export function UserManagement() {
                     <TableBody>
                       {filtered.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={5} className="text-center py-12">
+                          <TableCell colSpan={4} className="text-center py-12">
                             <div className="flex flex-col items-center text-gray-500">
                               <Search className="h-12 w-12 mb-4 text-gray-300" />
                               <p className="text-lg font-medium">
@@ -332,7 +455,7 @@ export function UserManagement() {
                         <AnimatePresence>
                           {filtered.map((u, i) => (
                             <motion.tr
-                              key={u.id}
+                              key={u.userId}
                               initial={{ opacity: 0, y: 10 }}
                               animate={{ opacity: 1, y: 0 }}
                               exit={{ opacity: 0, y: -10 }}
@@ -396,13 +519,19 @@ export function UserManagement() {
                                       Actions
                                     </DropdownMenuLabel>
                                     <DropdownMenuSeparator />
-                                    <DropdownMenuItem className="gap-2">
-                                      <Edit className="h-4 w-4" />
-                                      Edit User
+                                    <DropdownMenuItem
+                                      className="gap-2 cursor-pointer"
+                                      onClick={(e) => {
+                                        e.preventDefault();
+                                        openCallModal(u.userId);
+                                      }}
+                                    >
+                                      <PhoneCall className="h-4 w-4" />
+                                      Set Call Settings
                                     </DropdownMenuItem>
                                     <DropdownMenuItem
                                       className="gap-2 text-red-600 focus:text-red-600"
-                                      onClick={() => confirmDelete(u.id)}
+                                      onClick={() => confirmDelete(u.userId)}
                                     >
                                       <Trash2 className="h-4 w-4" />
                                       Delete User
@@ -434,7 +563,7 @@ export function UserManagement() {
                     <AnimatePresence>
                       {filtered.map((u, i) => (
                         <motion.div
-                          key={u.id}
+                          key={u.userId}
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, y: -20 }}
@@ -459,6 +588,9 @@ export function UserManagement() {
                                         {u.fullName || "Unnamed User"}
                                       </h3>
                                     </div>
+                                    <p className="text-xs text-gray-500 mb-2">
+                                      ID: {u.userId}
+                                    </p>
                                     <div className="space-y-1">
                                       <div className="flex items-center gap-2 text-sm text-gray-600">
                                         <Mail className="h-3 w-3" />
@@ -493,13 +625,19 @@ export function UserManagement() {
                                     </Button>
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end">
-                                    <DropdownMenuItem className="gap-2">
-                                      <Edit className="h-4 w-4" />
-                                      Edit
-                                    </DropdownMenuItem>
+                                    {/* <DropdownMenuItem
+                                      className="gap-2 cursor-pointer"
+                                      onClick={(e) => {
+                                        e.preventDefault();
+                                        openCallModal(u.userId);
+                                      }}
+                                    >
+                                      <PhoneCall className="h-4 w-4" />
+                                      Set Call Settings
+                                    </DropdownMenuItem> */}
                                     <DropdownMenuItem
                                       className="gap-2 text-red-600"
-                                      onClick={() => confirmDelete(u.id)}
+                                      onClick={() => confirmDelete(u.userId)}
                                     >
                                       <Trash2 className="h-4 w-4" />
                                       Delete
@@ -594,6 +732,120 @@ export function UserManagement() {
           </CardContent>
         </Card>
       </motion.div>
+
+      {/* Call Settings Modal */}
+      <Dialog open={isCallModalOpen} onOpenChange={setIsCallModalOpen}>
+        <DialogContent className="sm:max-w-[500px] z-50">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Settings className="h-5 w-5" />
+              Call Settings Configuration
+            </DialogTitle>
+            <DialogDescription>
+              Configure call access and limits for this user. These settings
+              control how many calls the user can make within the specified
+              period.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6 py-4">
+            {/* Call Access Toggle */}
+            <div className="space-y-2">
+              <Label className="text-base font-medium">Call Access</Label>
+              <div className="flex items-center justify-between p-4 border rounded-lg">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">
+                    {callAccessEnabled ? "Enabled" : "Disabled"}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {callAccessEnabled
+                      ? "User can make calls within the set limits"
+                      : "User cannot make any calls"}
+                  </p>
+                </div>
+                <Switch
+                  checked={callAccessEnabled}
+                  onCheckedChange={setCallAccessEnabled}
+                />
+              </div>
+            </div>
+
+            {/* Call Limit Settings */}
+            <div className="space-y-4">
+              <Label className="text-base font-medium">Call Limits</Label>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="callLimit" className="text-sm">
+                    Number of Calls
+                  </Label>
+                  <Input
+                    id="callLimit"
+                    type="number"
+                    min="1"
+                    max="100"
+                    value={callLimit}
+                    onChange={(e) => setCallLimit(Number(e.target.value))}
+                    className="w-full"
+                    disabled={!callAccessEnabled}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="period" className="text-sm">
+                    Period
+                  </Label>
+                  <Select
+                    value={callPeriod}
+                    onValueChange={setCallPeriod}
+                    disabled={!callAccessEnabled}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="DAILY">Daily</SelectItem>
+                      <SelectItem value="WEEKLY">Weekly</SelectItem>
+                      <SelectItem value="MONTHLY">Monthly</SelectItem>
+                      <SelectItem value="QUARTERLY">Quarterly</SelectItem>
+                      <SelectItem value="YEARLY">Yearly</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-sm text-blue-800">
+                  <strong>Summary:</strong>{" "}
+                  {callAccessEnabled
+                    ? `${selectedUserName} can make ${callLimit} calls ${callPeriod.toLowerCase()}`
+                    : `${selectedUserName} cannot make any calls`}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-4 border-t">
+            <Button
+              variant="outline"
+              onClick={() => setIsCallModalOpen(false)}
+              disabled={isUpdatingCallSettings}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleCallSettingsUpdate}
+              disabled={isUpdatingCallSettings}
+              className="gap-2"
+            >
+              {isUpdatingCallSettings && (
+                <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+              )}
+              Update Settings
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog
