@@ -477,9 +477,6 @@ export function UserManagement() {
                                     <p className="font-semibold text-gray-900 truncate">
                                       {u.fullName || "Unnamed User"}
                                     </p>
-                                    <p className="text-xs text-gray-500">
-                                      ID: {u.userId}
-                                    </p>
                                   </div>
                                 </div>
                               </TableCell>
