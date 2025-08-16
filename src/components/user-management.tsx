@@ -101,6 +101,8 @@ export function UserManagement() {
   const [callPeriod, setCallPeriod] = useState<string>("DAILY");
   const [callAccessEnabled, setCallAccessEnabled] = useState(true);
   const [isUpdatingCallSettings, setIsUpdatingCallSettings] = useState(false);
+  const selectedUser = users.find((user) => user.userId === selectedUserId);
+  const selectedUserName = selectedUser?.fullName || "User";
   const { user, token } = useAuth();
 
   // Fetch users from API
@@ -626,7 +628,7 @@ export function UserManagement() {
                                     </Button>
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end">
-                                    <DropdownMenuItem
+                                    {/* <DropdownMenuItem
                                       className="gap-2 cursor-pointer"
                                       onClick={(e) => {
                                         e.preventDefault();
@@ -635,7 +637,7 @@ export function UserManagement() {
                                     >
                                       <PhoneCall className="h-4 w-4" />
                                       Set Call Settings
-                                    </DropdownMenuItem>
+                                    </DropdownMenuItem> */}
                                     <DropdownMenuItem
                                       className="gap-2 text-red-600"
                                       onClick={() => confirmDelete(u.userId)}
@@ -819,8 +821,8 @@ export function UserManagement() {
                 <p className="text-sm text-blue-800">
                   <strong>Summary:</strong>{" "}
                   {callAccessEnabled
-                    ? `{u.fullName} can make ${callLimit} calls per ${callPeriod.toLowerCase()}`
-                    : "{u.fullName} cannot make any calls"}
+                    ? `${selectedUserName} can make ${callLimit} calls ${callPeriod.toLowerCase()}`
+                    : `${selectedUserName} cannot make any calls`}
                 </p>
               </div>
             </div>
