@@ -90,14 +90,14 @@ export function UserManagement() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [userToDelete, setUserToDelete] = useState<number | null>(null); // Changed to number
+  const [userToDelete, setUserToDelete] = useState<number | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
   const [isCallModalOpen, setIsCallModalOpen] = useState(false);
-  const [selectedUserId, setSelectedUserId] = useState<number | null>(null); // Changed to number
-  const [callLimit, setCallLimit] = useState<number>();
+  const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
+  const [callLimit, setCallLimit] = useState<number>(2);
   const [callPeriod, setCallPeriod] = useState<string>("DAILY");
   const [callAccessEnabled, setCallAccessEnabled] = useState(true);
   const [isUpdatingCallSettings, setIsUpdatingCallSettings] = useState(false);
@@ -219,7 +219,7 @@ export function UserManagement() {
   const openCallModal = async (userId: number) => {
     console.log("Opening call modal for user:", userId);
     setSelectedUserId(userId);
-    setCallLimit(0);
+    setCallLimit(2);
     setCallPeriod("DAILY");
     setCallAccessEnabled(true);
 
@@ -749,24 +749,47 @@ export function UserManagement() {
           </DialogHeader>
 
           <div className="space-y-6 py-4">
-            {/* Call Access Toggle */}
+            {/* Call Access Toggle + Select */}
             <div className="space-y-2">
               <Label className="text-base font-medium">Call Access</Label>
-              <div className="flex items-center justify-between p-4 border rounded-lg">
-                <div className="space-y-1">
-                  <p className="text-sm font-medium">
-                    {callAccessEnabled ? "Enabled" : "Disabled"}
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    {callAccessEnabled
-                      ? "User can make calls within the set limits"
-                      : "User cannot make any calls"}
-                  </p>
+              <div className="flex flex-col gap-3 p-4 border rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium">
+                      {callAccessEnabled ? "Enabled" : "Disabled"}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {callAccessEnabled
+                        ? "User can make calls within the set limits"
+                        : "User cannot make any calls"}
+                    </p>
+                  </div>
+                  <Switch
+                    checked={callAccessEnabled}
+                    onCheckedChange={setCallAccessEnabled}
+                  />
                 </div>
-                <Switch
-                  checked={callAccessEnabled}
-                  onCheckedChange={setCallAccessEnabled}
-                />
+
+                {/* Explicit True/False Select */}
+                <div className="space-y-1">
+                  <Label htmlFor="enabledSelect" className="text-sm">
+                    Enabled User to Make Call
+                  </Label>
+                  <Select
+                    value={callAccessEnabled ? "true" : "false"}
+                    onValueChange={(val) =>
+                      setCallAccessEnabled(val === "true")
+                    }
+                  >
+                    <SelectTrigger id="enabledSelect">
+                      <SelectValue placeholder="Select True or False" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="true">True</SelectItem>
+                      <SelectItem value="false">False</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
 
@@ -784,8 +807,11 @@ export function UserManagement() {
                     type="number"
                     min="1"
                     max="100"
-                    value={callLimit}
-                    onChange={(e) => setCallLimit(Number(e.target.value))}
+                    value={callLimit ?? ""} // ensure empty string if undefined
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setCallLimit(val ? parseInt(val, 10) : 1); // parseInt removes leading 0s, default to 1 if empty
+                    }}
                     className="w-full"
                     disabled={!callAccessEnabled}
                   />
