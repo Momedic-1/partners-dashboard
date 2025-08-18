@@ -773,7 +773,7 @@ export function UserManagement() {
                 {/* Explicit True/False Select */}
                 <div className="space-y-1">
                   <Label htmlFor="enabledSelect" className="text-sm">
-                    Enabled User to Make Call
+                    Enable User to Make Call
                   </Label>
                   <Select
                     value={callAccessEnabled ? "true" : "false"}
@@ -855,6 +855,7 @@ export function UserManagement() {
             <Button
               variant="outline"
               onClick={() => setIsCallModalOpen(false)}
+              className="cursor-pointer"
               disabled={isUpdatingCallSettings}
             >
               Cancel
@@ -862,7 +863,7 @@ export function UserManagement() {
             <Button
               onClick={handleCallSettingsUpdate}
               disabled={isUpdatingCallSettings}
-              className="gap-2"
+              className="gap-2 cursor-pointer border border-blue-500 hover:bg-blue-300 hover:text-white"
             >
               {isUpdatingCallSettings && (
                 <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
