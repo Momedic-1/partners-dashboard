@@ -97,6 +97,7 @@ export function UserManagement() {
   const [totalPages, setTotalPages] = useState(1);
   const [isCallModalOpen, setIsCallModalOpen] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
+  const [isLoadingCallSettings, setIsLoadingCallSettings] = useState(false);
   const [callLimit, setCallLimit] = useState<number>(2);
   const [callPeriod, setCallPeriod] = useState<string>("DAILY");
   const [callAccessEnabled, setCallAccessEnabled] = useState(true);
@@ -216,37 +217,70 @@ export function UserManagement() {
     }
   };
 
-  const openCallModal = async (userId: number) => {
-    console.log("Opening call modal for user:", userId);
-    setSelectedUserId(userId);
+const openCallModal = async (userId: number) => {
+  console.log("Opening call modal for user:", userId);
+  setSelectedUserId(userId);
+  setIsLoadingCallSettings(true);
+  
+  // Set default values initially
+  setCallLimit(2);
+  setCallPeriod("DAILY");
+  setCallAccessEnabled(true);
+
+  // Open modal immediately with loading state
+  setIsCallModalOpen(true);
+
+  // Fetch existing call settings
+  try {
+    if (user && token) {
+      console.log("Fetching existing call settings for user:", userId);
+      
+      // Use the API endpoint you provided to get current settings
+      const response = await axios.get(
+        `${baseUrl}/api/call-access/${user.id}/patient/${userId}/can-call`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      console.log("Existing call settings response:", response.data);
+
+      // Handle different response formats
+      if (typeof response.data === 'boolean') {
+        // API returned just a boolean (false means no call access)
+        setCallAccessEnabled(response.data);
+        // Keep default values for limit and period
+        setCallLimit(2);
+        setCallPeriod("DAILY");
+      } else if (response.data && typeof response.data === 'object') {
+        // API returned an object with detailed settings
+        setCallAccessEnabled(response.data.callAccessEnabled ?? response.data.canCall ?? true);
+        setCallLimit(response.data.callLimit ?? response.data.remainingCalls ?? response.data.maxCalls ?? 2);
+        setCallPeriod(response.data.period ?? response.data.callPeriod ?? "DAILY");
+      } else {
+        // Fallback to defaults if response is unexpected
+        console.log("Unexpected response format, using defaults");
+        setCallAccessEnabled(true);
+        setCallLimit(2);
+        setCallPeriod("DAILY");
+      }
+    }
+  } catch (error: any) {
+    console.log("Could not fetch existing call settings, using defaults:", error);
+    // If there's an error (like user not found), keep the default values
+    if (error?.response?.status === 404) {
+      console.log("User not found in call system, using defaults");
+    }
+    // Set reasonable defaults on error
+    setCallAccessEnabled(false);
     setCallLimit(2);
     setCallPeriod("DAILY");
-    setCallAccessEnabled(true);
-
-    // Optional: Try to fetch existing call settings first
-    try {
-      if (user && token) {
-        console.log(
-          "Attempting to fetch existing call settings for user:",
-          userId
-        );
-        // You might want to add an API call here to get existing settings
-        // const response = await axios.get(`${baseUrl}/api/call-access/${user.id}/patient/${userId}`);
-        // if (response.data) {
-        //   setCallLimit(response.data.callLimit || 5);
-        //   setCallPeriod(response.data.period || "DAILY");
-        //   setCallAccessEnabled(response.data.callAccessEnabled ?? true);
-        // }
-      }
-    } catch (error) {
-      console.log(
-        "Could not fetch existing call settings, using defaults:",
-        error
-      );
-    }
-
-    setIsCallModalOpen(true);
-  };
+  } finally {
+    setIsLoadingCallSettings(false);
+  }
+};
 
   const handleCallSettingsUpdate = async () => {
     if (!selectedUserId || !user || !token) return;
@@ -749,106 +783,113 @@ export function UserManagement() {
           </DialogHeader>
 
           <div className="space-y-6 py-4">
-            {/* Call Access Toggle + Select */}
-            <div className="space-y-2">
-              <Label className="text-base font-medium">Call Access</Label>
-              <div className="flex flex-col gap-3 p-4 border rounded-lg">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium">
-                      {callAccessEnabled ? "Enabled" : "Disabled"}
-                    </p>
-                    <p className="text-xs text-gray-500">
+            {isLoadingCallSettings ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full mr-3"></div>
+                <p className="text-gray-600">Loading current settings...</p>
+              </div>
+            ) : (
+              <>
+                <div className="space-y-2">
+                  <Label className="text-base font-medium">Call Access</Label>
+                  <div className="flex flex-col gap-3 p-4 border rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-1">
+                        <p className="text-sm font-medium">
+                          {callAccessEnabled ? "Enabled" : "Disabled"}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {callAccessEnabled
+                            ? "User can make calls within the set limits"
+                            : "User cannot make any calls"}
+                        </p>
+                      </div>
+                      <Switch
+                        checked={callAccessEnabled}
+                        onCheckedChange={setCallAccessEnabled}
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label htmlFor="enabledSelect" className="text-sm">
+                        Enable User to Make Call
+                      </Label>
+                      <Select
+                        value={callAccessEnabled ? "true" : "false"}
+                        onValueChange={(val) =>
+                          setCallAccessEnabled(val === "true")
+                        }
+                      >
+                        <SelectTrigger id="enabledSelect">
+                          <SelectValue placeholder="Select True or False" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="true">True</SelectItem>
+                          <SelectItem value="false">False</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Call Limit Settings */}
+                <div className="space-y-4">
+                  <Label className="text-base font-medium">Call Limits</Label>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="callLimit" className="text-sm">
+                        Number of Calls
+                      </Label>
+                      <Input
+                        id="callLimit"
+                        type="number"
+                        min="1"
+                        max="100"
+                        value={callLimit ?? ""}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setCallLimit(val ? parseInt(val, 10) : 1);
+                        }}
+                        className="w-full"
+                        disabled={!callAccessEnabled}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="period" className="text-sm">
+                        Period
+                      </Label>
+                      <Select
+                        value={callPeriod}
+                        onValueChange={setCallPeriod}
+                        disabled={!callAccessEnabled}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="DAILY">Daily</SelectItem>
+                          <SelectItem value="WEEKLY">Weekly</SelectItem>
+                          <SelectItem value="MONTHLY">Monthly</SelectItem>
+                          <SelectItem value="QUARTERLY">Quarterly</SelectItem>
+                          <SelectItem value="YEARLY">Yearly</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p className="text-sm text-blue-800">
+                      <strong>Summary:</strong>{" "}
                       {callAccessEnabled
-                        ? "User can make calls within the set limits"
-                        : "User cannot make any calls"}
+                        ? `${selectedUserName} can make ${callLimit} calls ${callPeriod.toLowerCase()}`
+                        : `${selectedUserName} cannot make any calls`}
                     </p>
                   </div>
-                  <Switch
-                    checked={callAccessEnabled}
-                    onCheckedChange={setCallAccessEnabled}
-                  />
                 </div>
-
-                {/* Explicit True/False Select */}
-                <div className="space-y-1">
-                  <Label htmlFor="enabledSelect" className="text-sm">
-                    Enable User to Make Call
-                  </Label>
-                  <Select
-                    value={callAccessEnabled ? "true" : "false"}
-                    onValueChange={(val) =>
-                      setCallAccessEnabled(val === "true")
-                    }
-                  >
-                    <SelectTrigger id="enabledSelect">
-                      <SelectValue placeholder="Select True or False" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="true">True</SelectItem>
-                      <SelectItem value="false">False</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </div>
-
-            {/* Call Limit Settings */}
-            <div className="space-y-4">
-              <Label className="text-base font-medium">Call Limits</Label>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="callLimit" className="text-sm">
-                    Number of Calls
-                  </Label>
-                  <Input
-                    id="callLimit"
-                    type="number"
-                    min="1"
-                    max="100"
-                    value={callLimit ?? ""} // ensure empty string if undefined
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      setCallLimit(val ? parseInt(val, 10) : 1); // parseInt removes leading 0s, default to 1 if empty
-                    }}
-                    className="w-full"
-                    disabled={!callAccessEnabled}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="period" className="text-sm">
-                    Period
-                  </Label>
-                  <Select
-                    value={callPeriod}
-                    onValueChange={setCallPeriod}
-                    disabled={!callAccessEnabled}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="DAILY">Daily</SelectItem>
-                      <SelectItem value="WEEKLY">Weekly</SelectItem>
-                      <SelectItem value="MONTHLY">Monthly</SelectItem>
-                      <SelectItem value="QUARTERLY">Quarterly</SelectItem>
-                      <SelectItem value="YEARLY">Yearly</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                <p className="text-sm text-blue-800">
-                  <strong>Summary:</strong>{" "}
-                  {callAccessEnabled
-                    ? `${selectedUserName} can make ${callLimit} calls ${callPeriod.toLowerCase()}`
-                    : `${selectedUserName} cannot make any calls`}
-                </p>
-              </div>
-            </div>
+              </>
+            )}
           </div>
 
           <div className="flex justify-end gap-2 pt-4 border-t">
