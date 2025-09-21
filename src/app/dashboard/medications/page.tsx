@@ -724,7 +724,7 @@ const PrescriptionReports = () => {
                             <TableCell className="py-4">
                               <Badge
                                 variant="outline"
-                                className="border-green-200 text-green-700 px-4 bg-green-50"
+                                className="w-[80px] border-green-200 text-green-700 px-4 bg-green-50"
                               >
                                 {prescription.duration}
                               </Badge>
