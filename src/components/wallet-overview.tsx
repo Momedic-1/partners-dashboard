@@ -1,13 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowUpRight, Wallet } from "lucide-react";
 import cardBg from "../assets/card.jpg";
@@ -85,22 +79,20 @@ export function WalletOverview() {
               <p className="text-sm text-muted-foreground mt-1">
                 Available for consultations
               </p>
-            </CardContent>
-            <CardFooter>
               <Button
                 variant="outline"
                 size="sm"
-                className="w-full cursor-pointer"
+                className=" bg-amber-600 cursor-pointer mt-2 hover:bg-amber-700 text-white"
                 onClick={() => setShowModal(true)}
               >
                 Fund Wallet
-                <ArrowUpRight className="ml-2 h-4 w-4" />
+                <ArrowUpRight className="ml-1 h-4 w-4" />
               </Button>
-            </CardFooter>
+            </CardContent>{" "}
           </Card>
         </motion.div>
       </motion.div>
-      
+
       <motion.div
         initial="hidden"
         animate="visible"
