@@ -27,9 +27,9 @@ export function WalletOverview() {
       setLoading(true);
       try {
         const response = await axios.get(
-          `${baseUrl}/api/organization/${orgId}/balance`,
+          ${baseUrl}/api/organization/${orgId}/balance,
           {
-            headers: { Authorization: `Bearer ${token}` },
+            headers: { Authorization: Bearer ${token} },
           }
         );
         console.log("Balance fetched:", response.data);
@@ -62,7 +62,7 @@ export function WalletOverview() {
         <motion.div
           whileHover={{ backgroundPositionY: "-20px" }}
           transition={{ duration: 0.5, ease: "easeInOut" }}
-          style={{ backgroundImage: `url(${cardBg.src})` }}
+          style={{ backgroundImage: url(${cardBg.src}) }}
           className="h-full bg-cover bg-center p-1"
         >
           <Card className="overflow-hidden text-[#f3f3f3] h-[250px]">
@@ -74,7 +74,7 @@ export function WalletOverview() {
             </CardHeader>
             <CardContent className="pt-6">
               <div className="text-3xl font-bold">
-                {loading ? "Loading..." : `₦${walletBalance.toLocaleString()}`}
+                {loading ? "Loading..." : ₦${walletBalance.toLocaleString()}}
               </div>
               <p className="text-sm text-muted-foreground mt-1">
                 Available for consultations
@@ -107,7 +107,7 @@ export function WalletOverview() {
         <motion.div
           whileHover={{ backgroundPositionY: "-20px" }}
           transition={{ duration: 0.5, ease: "easeInOut" }}
-          style={{ backgroundImage: `url(${walletBg.src})` }}
+          style={{ backgroundImage: url(${walletBg.src}) }}
           className="h-full bg-cover bg-center p-1"
         >
           <Card className="overflow-hidden h-full flex flex-col justify-between text-white">
@@ -155,6 +155,7 @@ export function WalletOverview() {
                 Make payment to the account below. Your wallet will be funded
                 shortly after.
               </p>
+
               <div className="space-y-2 text-sm mb-4">
                 <p>
                   <strong>Account Name:</strong> Medfair Technologies Limited
@@ -163,7 +164,10 @@ export function WalletOverview() {
                   <strong>Bank:</strong> Fidelity Bank
                 </p>
                 <p>
-                  <strong>Account Number:</strong> 5601363405
+                  <strong>Account Number:</strong>{" "}
+                  <span className="text-blue-600 font-bold hover:text-blue-800 text-xs">
+                    5601363405
+                  </span>
                 </p>
               </div>
               <p className="text-sm mb-6">
