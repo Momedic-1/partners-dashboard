@@ -30,7 +30,7 @@ import {
 } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
 
-// ✅ Define the route type so `badge` always exists
+// ✅ Define the route type so badge always exists
 type Route = {
   href: string;
   icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
@@ -224,7 +224,9 @@ export function DashboardSidebar() {
 
         {/* Nav */}
         <div className="flex-1 overflow-auto py-6 px-3">
-          <TooltipProvider delayDuration={100}>
+          <TooltipProvider 
+          // delayDuration={100}
+          >
             <nav className="grid items-start gap-2">
               {routes.map((route, index) => (
                 <motion.div
@@ -319,7 +321,9 @@ export function DashboardSidebar() {
               </AnimatePresence>
             </motion.div>
 
-            <TooltipProvider delayDuration={100}>
+            <TooltipProvider 
+            // delayDuration={100}
+            >
               <Tooltip>
                 <TooltipTrigger asChild>
                   <motion.div
