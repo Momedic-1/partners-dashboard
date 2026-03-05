@@ -17,7 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/use-toast";
 import { motion } from "framer-motion";
-import { Check, User } from "lucide-react";
+import { Check, User, Eye, EyeOff } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 export function CreateUserForm() {
@@ -37,6 +37,8 @@ export function CreateUserForm() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -103,11 +105,18 @@ export function CreateUserForm() {
       });
     } catch (err: any) {
       console.error(err);
-      const apiMessage =
+      const rawMessage =
         err.response?.data?.message ||
         err.response?.data?.error ||
         err.message ||
         "Unable to create user.";
+      const isConstraintError =
+        typeof rawMessage === "string" &&
+        (rawMessage.toLowerCase().includes("constraint") ||
+          rawMessage.includes("uk_1ar956vx8jufbghpyi09yr16l"));
+      const apiMessage = isConstraintError
+        ? "A user with this email or phone number already exists."
+        : rawMessage;
       setErrors((prev) => ({ ...prev, password: apiMessage }));
       toast({
         variant: "destructive",
@@ -217,48 +226,90 @@ export function CreateUserForm() {
             </motion.div>
 
             {["email", "phone", "password", "confirmedPassword"].map(
-              (id, idx) => (
-                <motion.div
-                  key={id}
-                  className="space-y-2"
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: (idx + 2) * 0.1, duration: 0.5 }}
-                >
-                  <Label htmlFor={id}>
-                    {id === "email"
-                      ? "Email Address"
-                      : id === "phone"
-                      ? "Phone Number"
-                      : id === "password"
-                      ? "Password"
-                      : "Confirm Password"}
-                    {id === "email" && (
-                      <span className="text-red-500 text-sm ml-2">
-                        (optional)
-                      </span>
-                    )}
-                  </Label>
-                  <Input
-                    id={id}
-                    name={id}
-                    type={
-                      id.includes("password")
-                        ? "password"
+              (id, idx) => {
+                const isPassword = id === "password";
+                const isConfirmPassword = id === "confirmedPassword";
+                const showAsText =
+                  (isPassword && showPassword) ||
+                  (isConfirmPassword && showConfirmPassword);
+                return (
+                  <motion.div
+                    key={id}
+                    className="space-y-2"
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: (idx + 2) * 0.1, duration: 0.5 }}
+                  >
+                    <Label htmlFor={id}>
+                      {id === "email"
+                        ? "Email Address"
                         : id === "phone"
-                        ? "tel"
-                        : "email"
-                    }
-                    value={formData[id as keyof typeof formData]}
-                    onChange={handleChange}
-                    required={id !== "email"}
-                    disabled={isSubmitting || isSuccess}
-                  />
-                  {errors[id] && (
-                    <p className="text-red-500 text-sm">{errors[id]}</p>
-                  )}
-                </motion.div>
-              )
+                        ? "Phone Number"
+                        : id === "password"
+                        ? "Password"
+                        : "Confirm Password"}
+                      {id === "email" && (
+                        <span className="text-red-500 text-sm ml-2">
+                          (optional)
+                        </span>
+                      )}
+                    </Label>
+                    <div className="relative">
+                      <Input
+                        id={id}
+                        name={id}
+                        type={
+                          isPassword || isConfirmPassword
+                            ? showAsText
+                              ? "text"
+                              : "password"
+                            : id === "phone"
+                            ? "tel"
+                            : "email"
+                        }
+                        value={formData[id as keyof typeof formData]}
+                        onChange={handleChange}
+                        required={id !== "email"}
+                        disabled={isSubmitting || isSuccess}
+                        className={
+                          isPassword || isConfirmPassword
+                            ? "pr-10"
+                            : undefined
+                        }
+                      />
+                      {(isPassword || isConfirmPassword) && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            isPassword
+                              ? setShowPassword((p) => !p)
+                              : setShowConfirmPassword((p) => !p)
+                          }
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
+                          aria-label={
+                            isPassword
+                              ? showPassword
+                                ? "Hide password"
+                                : "Show password"
+                              : showConfirmPassword
+                              ? "Hide confirm password"
+                              : "Show confirm password"
+                          }
+                        >
+                          {(isPassword ? showPassword : showConfirmPassword) ? (
+                            <EyeOff className="h-5 w-5" />
+                          ) : (
+                            <Eye className="h-5 w-5" />
+                          )}
+                        </button>
+                      )}
+                    </div>
+                    {errors[id] && (
+                      <p className="text-red-500 text-sm">{errors[id]}</p>
+                    )}
+                  </motion.div>
+                );
+              }
             )}
 
             <motion.div
