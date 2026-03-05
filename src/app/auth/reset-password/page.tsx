@@ -21,6 +21,10 @@ const Page = () => {
     setError("");
     setMessage("");
 
+    if (newPassword.length < 8) {
+      setError("Password must be at least 8 characters.");
+      return;
+    }
     if (newPassword !== confirmPassword) {
       setError("Passwords do not match.");
       return;
