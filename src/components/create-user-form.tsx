@@ -60,6 +60,8 @@ export function CreateUserForm() {
     if (!formData.lastName.trim()) newErrors.lastName = "Last name is required";
     if (!formData.phone.trim()) newErrors.phone = "Phone number is required";
     if (!formData.password) newErrors.password = "Password is required";
+    else if (formData.password.length < 8)
+      newErrors.password = "Password must be at least 8 characters";
     if (formData.password !== formData.confirmedPassword)
       newErrors.confirmedPassword = "Passwords do not match";
     if (!formData.gender) newErrors.gender = "Please select a gender";
@@ -101,10 +103,16 @@ export function CreateUserForm() {
       });
     } catch (err: any) {
       console.error(err);
+      const apiMessage =
+        err.response?.data?.message ||
+        err.response?.data?.error ||
+        err.message ||
+        "Unable to create user.";
+      setErrors((prev) => ({ ...prev, password: apiMessage }));
       toast({
         variant: "destructive",
         title: "Creation failed",
-        description: err.message || "Unable to create user.",
+        description: apiMessage,
       });
     } finally {
       setIsSubmitting(false);
