@@ -71,7 +71,9 @@ interface InvestigationOrder {
 }
 
 const InvestigationReports = () => {
-  const [investigations, setInvestigations] = useState<InvestigationOrder[]>([]);
+  const [investigations, setInvestigations] = useState<InvestigationOrder[]>(
+    [],
+  );
   const [searchTerm, setSearchTerm] = useState("");
   const [doctorFilter, setDoctorFilter] = useState("all");
   const [showFilters, setShowFilters] = useState(false);
@@ -81,7 +83,9 @@ const InvestigationReports = () => {
   const [accessLoading, setAccessLoading] = useState(true);
   const { user, token } = useAuth();
 
-  const doctors = Array.from(new Set(investigations.map((inv) => inv.doctorName)));
+  const doctors = Array.from(
+    new Set(investigations.map((inv) => inv.doctorName)),
+  );
 
   const checkInvestigationAccess = async () => {
     setAccessLoading(true);
@@ -105,12 +109,12 @@ const InvestigationReports = () => {
         `${baseUrl}/api/organization/${organizationId}/investigation-orders`,
         {
           headers: { Authorization: `Bearer ${token}` },
-        }
+        },
       );
 
       const sortedInvestigations = response.data.sort(
         (a: InvestigationOrder, b: InvestigationOrder) =>
-          new Date(b.orderDate).getTime() - new Date(a.orderDate).getTime()
+          new Date(b.orderDate).getTime() - new Date(a.orderDate).getTime(),
       );
 
       setInvestigations(sortedInvestigations);
@@ -139,7 +143,7 @@ const InvestigationReports = () => {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
-        }
+        },
       );
 
       await fetchInvestigationOrders();
@@ -177,12 +181,12 @@ const InvestigationReports = () => {
         `${baseUrl}/api/organization/${organizationId}/investigation-orders`,
         {
           headers: { Authorization: `Bearer ${token}` },
-        }
+        },
       );
 
       const sortedInvestigations = response.data.sort(
         (a: InvestigationOrder, b: InvestigationOrder) =>
-          new Date(b.orderDate).getTime() - new Date(a.orderDate).getTime()
+          new Date(b.orderDate).getTime() - new Date(a.orderDate).getTime(),
       );
 
       setInvestigations(sortedInvestigations);
@@ -204,10 +208,11 @@ const InvestigationReports = () => {
       inv.doctorName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       inv.patientEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
       inv.items.some((item) =>
-        item.investigationName.toLowerCase().includes(searchTerm.toLowerCase())
+        item.investigationName.toLowerCase().includes(searchTerm.toLowerCase()),
       );
 
-    const matchDoctor = doctorFilter === "all" || inv.doctorName === doctorFilter;
+    const matchDoctor =
+      doctorFilter === "all" || inv.doctorName === doctorFilter;
 
     return matchSearch && matchDoctor;
   });
@@ -221,7 +226,7 @@ const InvestigationReports = () => {
 
   const totalInvestigationsCount = investigations.reduce(
     (total, order) => total + order.items.length,
-    0
+    0,
   );
 
   // Access loading component
@@ -298,9 +303,9 @@ const InvestigationReports = () => {
               <Alert className="border-amber-200 bg-amber-50">
                 <AlertCircle className="h-5 w-5 text-amber-600" />
                 <AlertDescription className="text-amber-800 font-medium">
-                  This organization does not have access to client investigation order
-                  data. Please contact your system administrator to request the
-                  necessary permissions.
+                  This organization does not have access to client investigation
+                  order data. Please contact your system administrator to
+                  request the necessary permissions.
                 </AlertDescription>
               </Alert>
             </CardContent>
@@ -359,7 +364,9 @@ const InvestigationReports = () => {
                   <FileText className="h-6 w-6" />
                   <div>
                     <p className="text-blue-100 text-sm">Total Orders</p>
-                    <p className="text-2xl font-bold">{investigations.length}</p>
+                    <p className="text-2xl font-bold">
+                      {investigations.length}
+                    </p>
                   </div>
                 </div>
               </CardContent>
@@ -383,7 +390,9 @@ const InvestigationReports = () => {
                   <Microscope className="h-6 w-6" />
                   <div>
                     <p className="text-purple-100 text-sm">Investigations</p>
-                    <p className="text-2xl font-bold">{totalInvestigationsCount}</p>
+                    <p className="text-2xl font-bold">
+                      {totalInvestigationsCount}
+                    </p>
                   </div>
                 </div>
               </CardContent>
@@ -400,7 +409,7 @@ const InvestigationReports = () => {
                         investigations.filter(
                           (inv) =>
                             new Date(inv.orderDate).getMonth() ===
-                            new Date().getMonth()
+                            new Date().getMonth(),
                         ).length
                       }
                     </p>
@@ -717,11 +726,15 @@ const InvestigationReports = () => {
                                 <div className="flex items-center gap-2">
                                   <Calendar className="w-4 h-4 text-indigo-500" />
                                   <p className="font-medium text-gray-700">
-                                    {new Date(order.orderDate).toLocaleDateString()}
+                                    {new Date(
+                                      order.orderDate,
+                                    ).toLocaleDateString()}
                                   </p>
                                 </div>
                                 <p className="text-xs text-gray-500">
-                                  {new Date(order.orderDate).toLocaleTimeString()}
+                                  {new Date(
+                                    order.orderDate,
+                                  ).toLocaleTimeString()}
                                 </p>
                               </div>
                             </TableCell>
@@ -730,7 +743,8 @@ const InvestigationReports = () => {
                                 variant="secondary"
                                 className="bg-gradient-to-r from-purple-100 to-purple-200 text-purple-800 border-purple-200"
                               >
-                                {order.items.length} {order.items.length === 1 ? 'Item' : 'Items'}
+                                {order.items.length}{" "}
+                                {order.items.length === 1 ? "Item" : "Items"}
                               </Badge>
                             </TableCell>
                           </motion.tr>
@@ -743,9 +757,9 @@ const InvestigationReports = () => {
             </CardContent>
           </Card>
         </motion.div>
-             </motion.div>
+      </motion.div>
     </div>
   );
 };
 
-export default InvestigationReports
+export default InvestigationReports;
