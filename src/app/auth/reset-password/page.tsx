@@ -114,7 +114,7 @@ const Page = () => {
           <button
             type="button"
             onClick={() => setShowPassword((prev) => !prev)}
-            className="absolute right-3 top-9 text-gray-500 hover:text-gray-700"
+            className="absolute right-3 top-9 cursor-pointer text-gray-500 hover:text-gray-700"
           >
             {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
           </button>
@@ -123,7 +123,7 @@ const Page = () => {
         <button
           type="submit"
           disabled={loading}
-          className={`w-full py-2 text-white rounded-md bg-blue-700 ${
+          className={`w-full py-2 cursor-pointer text-white rounded-md bg-blue-700 ${
             loading ? "opacity-50 cursor-not-allowed" : "hover:bg-blue-800"
           }`}
         >

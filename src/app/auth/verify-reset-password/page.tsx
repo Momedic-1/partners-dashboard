@@ -104,7 +104,7 @@ const Page = () => {
         <button
           type="submit"
           disabled={loading}
-          className={`w-full py-2 text-white rounded-md bg-blue-700 ${
+          className={`w-full py-2 cursor-pointer text-white rounded-md bg-blue-700 ${
             loading ? "opacity-50 cursor-not-allowed" : "hover:bg-blue-800"
           }`}
         >

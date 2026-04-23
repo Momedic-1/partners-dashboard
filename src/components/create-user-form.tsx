@@ -45,9 +45,37 @@ export function CreateUserForm() {
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-    if (errors[name]) {
-      setErrors((prev) => ({ ...prev, [name]: "" }));
-    }
+    setErrors((prev) => {
+      const nextErrors = { ...prev };
+
+      if (nextErrors[name]) {
+        nextErrors[name] = "";
+      }
+
+      if (name === "password") {
+        if (!value) {
+          nextErrors.password = "Password is required";
+        } else if (value.length < 8) {
+          nextErrors.password = "Password must be at least 8 characters";
+        }
+
+        if (formData.confirmedPassword && value !== formData.confirmedPassword) {
+          nextErrors.confirmedPassword = "Passwords do not match";
+        } else if (nextErrors.confirmedPassword === "Passwords do not match") {
+          nextErrors.confirmedPassword = "";
+        }
+      }
+
+      if (name === "confirmedPassword") {
+        if (formData.password && value !== formData.password) {
+          nextErrors.confirmedPassword = "Passwords do not match";
+        } else if (nextErrors.confirmedPassword === "Passwords do not match") {
+          nextErrors.confirmedPassword = "";
+        }
+      }
+
+      return nextErrors;
+    });
   };
 
   const resetForm = () => {
@@ -285,7 +313,7 @@ export function CreateUserForm() {
                               ? setShowPassword((p) => !p)
                               : setShowConfirmPassword((p) => !p)
                           }
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none cursor-pointer"
                           aria-label={
                             isPassword
                               ? showPassword
@@ -325,7 +353,7 @@ export function CreateUserForm() {
                 value={formData.gender}
                 onChange={handleChange}
                 disabled={isSubmitting || isSuccess}
-                className="w-full border border-gray-300 rounded p-2"
+                className="w-full border border-gray-300 rounded p-2 cursor-pointer disabled:cursor-not-allowed"
                 required
               >
                 <option value="">Select gender</option>
@@ -341,7 +369,7 @@ export function CreateUserForm() {
           <CardFooter className="flex flex-col space-y-4">
             <Button
               type="submit"
-              className="w-full cursor-pointer"
+              className="w-full cursor-pointer bg-blue-700 hover:bg-blue-500"
               disabled={isSubmitting || isSuccess}
             >
               {isSubmitting ? (
@@ -375,8 +403,8 @@ export function CreateUserForm() {
                 </>
               ) : (
                 <>
-                  <User className="mr-2 h-4 w-4" />
-                  Create User
+                  <User className="mr-2 h-4 w-4 text-white" />
+                  <span className="text-white">Create User</span>
                 </>
               )}
             </Button>
@@ -385,7 +413,7 @@ export function CreateUserForm() {
               <Button
                 type="button"
                 variant="outline"
-                className="w-full"
+                className="w-full cursor-pointer"
                 onClick={() => {
                   setIsSuccess(false);
                   resetForm();

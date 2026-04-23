@@ -312,7 +312,7 @@ export function RecentUsers() {
                       <button
                         key={p}
                         onClick={() => handlePageChange(p)}
-                        className={`w-8 h-8 flex items-center justify-center rounded ${
+                        className={`w-8 h-8 flex items-center justify-center rounded cursor-pointer ${
                           p === currentPage
                             ? "bg-blue-900 text-white"
                             : "hover:bg-gray-100"
