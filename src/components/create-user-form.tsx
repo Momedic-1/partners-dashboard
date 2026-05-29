@@ -4,21 +4,55 @@ import React, { useState } from "react";
 import axios from "@/lib/axios";
 import { baseUrl } from "@/env";
 import { useAuth } from "@/AuthContext";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { getOrganizationId } from "@/lib/organization";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/use-toast";
-import { motion } from "framer-motion";
-import { Check, User, Eye, EyeOff } from "lucide-react";
+import {
+  Check,
+  User,
+  Eye,
+  EyeOff,
+  Loader2,
+  UserPlus,
+  Phone,
+  Mail,
+  Lock,
+} from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { SectionCard } from "@/components/dashboard/section-card";
+import { cn } from "@/lib/utils";
+
+const inputClass =
+  "border-slate-200 bg-white focus-visible:ring-[#020E7C]/30";
+
+function FormSection({
+  title,
+  description,
+  icon: Icon,
+  children,
+}: {
+  title: string;
+  description: string;
+  icon: React.ComponentType<{ className?: string }>;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-lg border border-slate-200 bg-slate-50/40 p-4 sm:p-5">
+      <div className="mb-4 flex items-start gap-3">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#020E7C]/10 text-[#020E7C]">
+          <Icon className="h-4 w-4" />
+        </div>
+        <div>
+          <h4 className="font-semibold text-slate-900">{title}</h4>
+          <p className="text-sm text-slate-500">{description}</p>
+        </div>
+      </div>
+      <div className="space-y-4">{children}</div>
+    </div>
+  );
+}
 
 export function CreateUserForm() {
   const { user, token } = useAuth();
@@ -46,35 +80,34 @@ export function CreateUserForm() {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
     setErrors((prev) => {
-      const nextErrors = { ...prev };
-
-      if (nextErrors[name]) {
-        nextErrors[name] = "";
-      }
+      const next = { ...prev };
+      if (next[name]) next[name] = "";
 
       if (name === "password") {
-        if (!value) {
-          nextErrors.password = "Password is required";
-        } else if (value.length < 8) {
-          nextErrors.password = "Password must be at least 8 characters";
-        }
+        if (!value) next.password = "Password is required";
+        else if (value.length < 8)
+          next.password = "Password must be at least 8 characters";
+        else delete next.password;
 
-        if (formData.confirmedPassword && value !== formData.confirmedPassword) {
-          nextErrors.confirmedPassword = "Passwords do not match";
-        } else if (nextErrors.confirmedPassword === "Passwords do not match") {
-          nextErrors.confirmedPassword = "";
+        if (
+          formData.confirmedPassword &&
+          value !== formData.confirmedPassword
+        ) {
+          next.confirmedPassword = "Passwords do not match";
+        } else if (next.confirmedPassword === "Passwords do not match") {
+          delete next.confirmedPassword;
         }
       }
 
       if (name === "confirmedPassword") {
         if (formData.password && value !== formData.password) {
-          nextErrors.confirmedPassword = "Passwords do not match";
-        } else if (nextErrors.confirmedPassword === "Passwords do not match") {
-          nextErrors.confirmedPassword = "";
+          next.confirmedPassword = "Passwords do not match";
+        } else if (next.confirmedPassword === "Passwords do not match") {
+          delete next.confirmedPassword;
         }
       }
 
-      return nextErrors;
+      return next;
     });
   };
 
@@ -110,14 +143,15 @@ export function CreateUserForm() {
     setErrors({});
 
     try {
-      if (!user?.id || !token) throw new Error("Not authenticated");
+      const orgId = getOrganizationId(user);
+      if (!orgId || !token) throw new Error("Not authenticated");
 
       await axios.post(
-        `${baseUrl}/api/organization/createNewUser/${user.id}`,
+        `${baseUrl}/api/organization/createNewUser/${orgId}`,
         {
           firstName: formData.firstName,
           lastName: formData.lastName,
-          email: formData?.email,
+          email: formData.email || undefined,
           phoneNumber: formData.phone,
           password: formData.password,
           confirmedPassword: formData.confirmedPassword,
@@ -128,15 +162,22 @@ export function CreateUserForm() {
 
       setIsSuccess(true);
       toast({
-        title: "User created successfully",
-        description: `${formData.firstName} ${formData.lastName} has been added to your users.`,
+        title: "User created",
+        description: `${formData.firstName} ${formData.lastName} was added successfully.`,
       });
-    } catch (err: any) {
-      console.error(err);
+      setTimeout(() => {
+        setIsSuccess(false);
+        resetForm();
+      }, 2500);
+    } catch (err: unknown) {
+      const axiosErr = err as {
+        response?: { data?: { message?: string; error?: string } };
+        message?: string;
+      };
       const rawMessage =
-        err.response?.data?.message ||
-        err.response?.data?.error ||
-        err.message ||
+        axiosErr.response?.data?.message ||
+        axiosErr.response?.data?.error ||
+        axiosErr.message ||
         "Unable to create user.";
       const isConstraintError =
         typeof rawMessage === "string" &&
@@ -145,7 +186,7 @@ export function CreateUserForm() {
       const apiMessage = isConstraintError
         ? "A user with this email or phone number already exists."
         : rawMessage;
-      setErrors((prev) => ({ ...prev, password: apiMessage }));
+      setErrors((prev) => ({ ...prev, form: apiMessage }));
       toast({
         variant: "destructive",
         title: "Creation failed",
@@ -153,278 +194,267 @@ export function CreateUserForm() {
       });
     } finally {
       setIsSubmitting(false);
-      if (isSuccess) {
-        setTimeout(() => {
-          setIsSuccess(false);
-          resetForm();
-        }, 2000);
-      }
     }
   };
 
-  const getInitials = (first = "", last = "") => {
-    return (first[0] || "") + (last[0] || "");
-  };
+  const getInitials = (first = "", last = "") =>
+    ((first[0] || "") + (last[0] || "")).toUpperCase();
+
+  const disabled = isSubmitting || isSuccess;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
+    <SectionCard
+      title="Create new user"
+      description="Register one member manually. Fields marked required must be filled."
     >
-      <Card>
-        <CardHeader>
-          <CardTitle>Create New User</CardTitle>
-          <CardDescription>Add a new user to your organization</CardDescription>
-        </CardHeader>
-
-        <form onSubmit={handleSubmit} noValidate>
-          <CardContent className="space-y-6">
-            <div className="flex justify-center mb-4">
-              <motion.div
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ duration: 0.5 }}
-              >
-                <Avatar className="h-24 w-24 backdrop-blur-md bg-white/10 border border-white/20 shadow-xl rounded-full hover:scale-105 transition-transform duration-300">
-                  <AvatarFallback className="text-white text-2xl font-bold uppercase tracking-wide bg-black/40">
-                    {isSuccess ? (
-                      <Check className="h-8 w-8" />
-                    ) : (
-                      getInitials(formData.firstName, formData.lastName)
-                    )}
-                  </AvatarFallback>
-                </Avatar>
-              </motion.div>
-            </div>
-
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="w-full md:w-1/2 space-y-2">
-                <Label htmlFor="firstName">First Name</Label>
-                <Input
-                  id="firstName"
-                  name="firstName"
-                  type="text"
-                  value={formData.firstName}
-                  onChange={handleChange}
-                  required
-                  disabled={isSubmitting || isSuccess}
-                />
-                {errors.firstName && (
-                  <p className="text-red-500 text-sm">{errors.firstName}</p>
-                )}
-              </div>
-
-              <div className="w-full md:w-1/2 space-y-2">
-                <Label htmlFor="lastName">Last Name</Label>
-                <Input
-                  id="lastName"
-                  name="lastName"
-                  type="text"
-                  value={formData.lastName}
-                  onChange={handleChange}
-                  required
-                  disabled={isSubmitting || isSuccess}
-                />
-                {errors.lastName && (
-                  <p className="text-red-500 text-sm">{errors.lastName}</p>
-                )}
-              </div>
-            </div>
-
-            <motion.div
-              className="space-y-2"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.3, duration: 0.5 }}
-            >
-              <Label htmlFor="createdDate">Date Added</Label>
-              <Input
-                id="createdDate"
-                name="createdDate"
-                type="text"
-                value={new Date().toISOString().split("T")[0]}
-                readOnly
-                disabled
-                className="bg-gray-50 cursor-not-allowed"
-              />
-              <p className="text-gray-500 text-sm">
-                This date will be automatically set when the user is created
-              </p>
-            </motion.div>
-
-            {["email", "phone", "password", "confirmedPassword"].map(
-              (id, idx) => {
-                const isPassword = id === "password";
-                const isConfirmPassword = id === "confirmedPassword";
-                const showAsText =
-                  (isPassword && showPassword) ||
-                  (isConfirmPassword && showConfirmPassword);
-                return (
-                  <motion.div
-                    key={id}
-                    className="space-y-2"
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: (idx + 2) * 0.1, duration: 0.5 }}
-                  >
-                    <Label htmlFor={id}>
-                      {id === "email"
-                        ? "Email Address"
-                        : id === "phone"
-                        ? "Phone Number"
-                        : id === "password"
-                        ? "Password"
-                        : "Confirm Password"}
-                      {id === "email" && (
-                        <span className="text-red-500 text-sm ml-2">
-                          (optional)
-                        </span>
-                      )}
-                    </Label>
-                    <div className="relative">
-                      <Input
-                        id={id}
-                        name={id}
-                        type={
-                          isPassword || isConfirmPassword
-                            ? showAsText
-                              ? "text"
-                              : "password"
-                            : id === "phone"
-                            ? "tel"
-                            : "email"
-                        }
-                        value={formData[id as keyof typeof formData]}
-                        onChange={handleChange}
-                        required={id !== "email"}
-                        disabled={isSubmitting || isSuccess}
-                        className={
-                          isPassword || isConfirmPassword
-                            ? "pr-10"
-                            : undefined
-                        }
-                      />
-                      {(isPassword || isConfirmPassword) && (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            isPassword
-                              ? setShowPassword((p) => !p)
-                              : setShowConfirmPassword((p) => !p)
-                          }
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none cursor-pointer"
-                          aria-label={
-                            isPassword
-                              ? showPassword
-                                ? "Hide password"
-                                : "Show password"
-                              : showConfirmPassword
-                              ? "Hide confirm password"
-                              : "Show confirm password"
-                          }
-                        >
-                          {(isPassword ? showPassword : showConfirmPassword) ? (
-                            <EyeOff className="h-5 w-5" />
-                          ) : (
-                            <Eye className="h-5 w-5" />
-                          )}
-                        </button>
-                      )}
-                    </div>
-                    {errors[id] && (
-                      <p className="text-red-500 text-sm">{errors[id]}</p>
-                    )}
-                  </motion.div>
-                );
-              }
-            )}
-
-            <motion.div
-              className="space-y-2"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.7, duration: 0.5 }}
-            >
-              <Label htmlFor="gender">Gender</Label>
-              <select
-                id="gender"
-                name="gender"
-                value={formData.gender}
-                onChange={handleChange}
-                disabled={isSubmitting || isSuccess}
-                className="w-full border border-gray-300 rounded p-2 cursor-pointer disabled:cursor-not-allowed"
-                required
-              >
-                <option value="">Select gender</option>
-                <option value="female">Female</option>
-                <option value="male">Male</option>
-              </select>
-              {errors.gender && (
-                <p className="text-red-500 text-sm">{errors.gender}</p>
+      <form onSubmit={handleSubmit} noValidate className="mx-auto max-w-2xl space-y-6">
+        <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-slate-200 bg-white py-6">
+          <Avatar className="h-16 w-16 border-2 border-[#020E7C]/25">
+            <AvatarFallback
+              className={cn(
+                "text-lg font-bold uppercase",
+                isSuccess ? "bg-emerald-600 text-white" : "bg-[#020E7C] text-white"
               )}
-            </motion.div>
-          </CardContent>
-
-          <CardFooter className="flex flex-col space-y-4">
-            <Button
-              type="submit"
-              className="w-full cursor-pointer bg-blue-700 hover:bg-blue-500"
-              disabled={isSubmitting || isSuccess}
             >
-              {isSubmitting ? (
-                <>
-                  <svg
-                    className="animate-spin -ml-1 mr-2 h-4 w-4 text-primary-foreground"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    />
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    />
-                  </svg>
-                  Creating...
-                </>
-              ) : isSuccess ? (
-                <>
-                  <Check className="mr-2 h-4 w-4" />
-                  User Created
-                </>
+              {isSuccess ? (
+                <Check className="h-7 w-7" />
               ) : (
-                <>
-                  <User className="mr-2 h-4 w-4 text-white" />
-                  <span className="text-white">Create User</span>
-                </>
+                getInitials(formData.firstName, formData.lastName) || "?"
               )}
-            </Button>
+            </AvatarFallback>
+          </Avatar>
+          <p className="text-sm text-slate-500">
+            {isSuccess
+              ? "Member added to your organization"
+              : "Preview updates as you type"}
+          </p>
+        </div>
 
-            {isSuccess && (
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full cursor-pointer"
-                onClick={() => {
-                  setIsSuccess(false);
-                  resetForm();
-                }}
-              >
-                Create Another User
-              </Button>
+        {errors.form && (
+          <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            {errors.form}
+          </p>
+        )}
+
+        <FormSection
+          title="Personal details"
+          description="Basic identity information"
+          icon={User}
+        >
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="firstName">
+                First name <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="firstName"
+                name="firstName"
+                value={formData.firstName}
+                onChange={handleChange}
+                disabled={disabled}
+                className={inputClass}
+                placeholder="e.g. Ada"
+              />
+              {errors.firstName && (
+                <p className="text-sm text-red-600">{errors.firstName}</p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="lastName">
+                Last name <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="lastName"
+                name="lastName"
+                value={formData.lastName}
+                onChange={handleChange}
+                disabled={disabled}
+                className={inputClass}
+                placeholder="e.g. Okonkwo"
+              />
+              {errors.lastName && (
+                <p className="text-sm text-red-600">{errors.lastName}</p>
+              )}
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="gender">
+              Gender <span className="text-red-500">*</span>
+            </Label>
+            <select
+              id="gender"
+              name="gender"
+              value={formData.gender}
+              onChange={handleChange}
+              disabled={disabled}
+              className={cn(
+                "flex h-10 w-full rounded-md border px-3 text-sm text-slate-900",
+                inputClass
+              )}
+            >
+              <option value="">Select gender</option>
+              <option value="female">Female</option>
+              <option value="male">Male</option>
+            </select>
+            {errors.gender && (
+              <p className="text-sm text-red-600">{errors.gender}</p>
             )}
-          </CardFooter>
-        </form>
-      </Card>
-    </motion.div>
+          </div>
+        </FormSection>
+
+        <FormSection
+          title="Contact"
+          description="How the member can be reached"
+          icon={Phone}
+        >
+          <div className="space-y-2">
+            <Label htmlFor="phone" className="flex items-center gap-1">
+              <Phone className="h-3.5 w-3.5 text-slate-400" />
+              Phone number <span className="text-red-500">*</span>
+            </Label>
+            <Input
+              id="phone"
+              name="phone"
+              type="tel"
+              value={formData.phone}
+              onChange={handleChange}
+              disabled={disabled}
+              className={inputClass}
+              placeholder="08012345678"
+            />
+            {errors.phone && (
+              <p className="text-sm text-red-600">{errors.phone}</p>
+            )}
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="email" className="flex items-center gap-1">
+              <Mail className="h-3.5 w-3.5 text-slate-400" />
+              Email <span className="text-slate-400">(optional)</span>
+            </Label>
+            <Input
+              id="email"
+              name="email"
+              type="email"
+              value={formData.email}
+              onChange={handleChange}
+              disabled={disabled}
+              className={inputClass}
+              placeholder="member@company.com"
+            />
+          </div>
+        </FormSection>
+
+        <FormSection
+          title="Account access"
+          description="Login credentials for the new member"
+          icon={Lock}
+        >
+          <div className="space-y-2">
+            <Label htmlFor="password">
+              Password <span className="text-red-500">*</span>
+            </Label>
+            <div className="relative">
+              <Input
+                id="password"
+                name="password"
+                type={showPassword ? "text" : "password"}
+                value={formData.password}
+                onChange={handleChange}
+                disabled={disabled}
+                className={cn(inputClass, "pr-10")}
+                placeholder="Minimum 8 characters"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((p) => !p)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700"
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? (
+                  <EyeOff className="h-5 w-5" />
+                ) : (
+                  <Eye className="h-5 w-5" />
+                )}
+              </button>
+            </div>
+            {errors.password && (
+              <p className="text-sm text-red-600">{errors.password}</p>
+            )}
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="confirmedPassword">
+              Confirm password <span className="text-red-500">*</span>
+            </Label>
+            <div className="relative">
+              <Input
+                id="confirmedPassword"
+                name="confirmedPassword"
+                type={showConfirmPassword ? "text" : "password"}
+                value={formData.confirmedPassword}
+                onChange={handleChange}
+                disabled={disabled}
+                className={cn(inputClass, "pr-10")}
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword((p) => !p)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700"
+                aria-label={
+                  showConfirmPassword ? "Hide confirm password" : "Show confirm password"
+                }
+              >
+                {showConfirmPassword ? (
+                  <EyeOff className="h-5 w-5" />
+                ) : (
+                  <Eye className="h-5 w-5" />
+                )}
+              </button>
+            </div>
+            {errors.confirmedPassword && (
+              <p className="text-sm text-red-600">{errors.confirmedPassword}</p>
+            )}
+          </div>
+        </FormSection>
+
+        <div className="flex flex-col gap-3 border-t border-slate-100 pt-2 sm:flex-row">
+          <Button
+            type="submit"
+            variant="brand"
+            className="flex-1"
+            disabled={disabled}
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Creating member…
+              </>
+            ) : isSuccess ? (
+              <>
+                <Check className="mr-2 h-4 w-4" />
+                Member created
+              </>
+            ) : (
+              <>
+                <UserPlus className="mr-2 h-4 w-4" />
+                Create user
+              </>
+            )}
+          </Button>
+          {isSuccess && (
+            <Button
+              type="button"
+              variant="outline"
+              className="flex-1 border-slate-200"
+              onClick={() => {
+                setIsSuccess(false);
+                resetForm();
+              }}
+            >
+              Add another
+            </Button>
+          )}
+        </div>
+      </form>
+    </SectionCard>
   );
 }

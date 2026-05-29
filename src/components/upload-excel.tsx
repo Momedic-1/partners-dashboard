@@ -17,6 +17,7 @@ import { toast } from "@/components/ui/use-toast";
 import { Progress } from "@/components/ui/progress";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/AuthContext";
+import { getOrganizationId } from "@/lib/organization";
 
 interface UploadExcelProps {
   orgId?: string | number;
@@ -91,7 +92,8 @@ export function UploadExcel({ orgId }: UploadExcelProps) {
 
     try {
       // Use the organizational ID from props or fall back to the user's ID
-      const organizationId = orgId || user.id;
+      const organizationId = orgId ?? getOrganizationId(user);
+      if (!organizationId) throw new Error("Organization not found");
 
       const response = await axios.post<UploadResponse>(
         `${baseUrl}/api/organization/upload/${organizationId}`,
@@ -143,10 +145,10 @@ export function UploadExcel({ orgId }: UploadExcelProps) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
     >
-      <Card>
-        <CardHeader>
-          <CardTitle>Upload User Data</CardTitle>
-          <CardDescription>Bulk import users via Excel</CardDescription>
+      <Card className="border border-slate-200/80 shadow-sm">
+        <CardHeader className="border-b border-slate-100">
+          <CardTitle className="text-slate-900">Upload members</CardTitle>
+          <CardDescription>Bulk import users from an Excel file (.xls / .xlsx)</CardDescription>
         </CardHeader>
 
         <CardContent className="space-y-6">

@@ -17,11 +17,12 @@ import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/use-toast";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 // import { Upload } from "lucide-react";
-import { motion } from "framer-motion";
 import { useAuth } from "@/AuthContext";
+import { getOrganizationId } from "@/lib/organization";
 
 export function ProfileForm() {
   const { user, token } = useAuth();
+  const orgId = getOrganizationId(user);
 
   const [formData, setFormData] = useState({
     adminFullName: "",
@@ -37,7 +38,7 @@ export function ProfileForm() {
   // Fetch admin info
   useEffect(() => {
     const fetchAdminInfo = async () => {
-      if (!user || !token) {
+      if (!user || !token || !orgId) {
         setError("Not authenticated");
         setLoading(false);
         return;
@@ -45,7 +46,7 @@ export function ProfileForm() {
       setLoading(true);
       try {
         const res = await axios.get(
-          `${baseUrl}/api/organization/${user.id}/admin-info`,
+          `${baseUrl}/api/organization/${orgId}/admin-info`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         const data = res.data;
@@ -63,7 +64,7 @@ export function ProfileForm() {
       }
     };
     fetchAdminInfo();
-  }, [user, token]);
+  }, [user, token, orgId]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -77,7 +78,7 @@ export function ProfileForm() {
     setIsSubmitting(true);
     try {
       await axios.put(
-        `${baseUrl}/api/organization/${user?.id}/admin-info`,
+        `${baseUrl}/api/organization/${orgId}/admin-info`,
         formData,
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -117,79 +118,67 @@ export function ProfileForm() {
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-    >
-      <Card>
-        <CardHeader>
-          <CardTitle>Profile Information</CardTitle>
+    <div>
+      <Card className="border border-slate-200/80 shadow-sm">
+        <CardHeader className="border-b border-slate-100 bg-slate-50/50">
+          <CardTitle className="text-slate-900">Organization profile</CardTitle>
+          <p className="text-sm text-slate-500">
+            Profile details are read-only for partner accounts.
+          </p>
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-6">
             <div className="flex justify-center mb-6">
               <div className="relative">
-                <motion.div
-                  initial={{ scale: 0.8, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ duration: 0.5 }}
-                  whileHover={{ scale: 1.05 }}
-                >
-                  <Avatar className="h-24 w-24 backdrop-blur-md bg-white/10 border border-white/20 shadow-xl rounded-full hover:scale-105 transition-transform duration-300">
-                    <AvatarFallback className="text-white text-2xl font-bold uppercase tracking-wide bg-black/40">
-                      {getInitials(formData.adminFullName)}
-                    </AvatarFallback>
-                  </Avatar>
-                </motion.div>
-                <Button
-                  type="button"
-                  size="icon"
-                  className="absolute bottom-0 right-0 h-8 w-8 rounded-full bg-primary hover:bg-primary/90"
-                >
-                  {/* <Upload className="h-4 w-4" /> */}
-                </Button>
+                <Avatar className="h-24 w-24 border-2 border-[#020E7C]/20 shadow-md">
+                  <AvatarFallback className="text-2xl font-bold uppercase bg-[#020E7C] text-white">
+                    {getInitials(formData.adminFullName)}
+                  </AvatarFallback>
+                </Avatar>
               </div>
             </div>
 
             <div className="grid gap-6 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="name"> Admin Full Name</Label>
+                <Label htmlFor="adminFullName">Admin Full Name</Label>
                 <Input
-                  id="name"
-                  name="name"
+                  id="adminFullName"
+                  name="adminFullName"
                   placeholder="Enter your full name"
                   value={formData.adminFullName}
                   onChange={handleChange}
                   disabled={isSubmitting}
                   readOnly
+                  className="bg-slate-50 border-slate-200"
                 />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="email">Email Address</Label>
                 <Input
-                  id="email"
-                  name="email"
+                  id="organizationEmail"
+                  name="organizationEmail"
                   type="email"
                   placeholder="Enter your email address"
                   value={formData.organizationEmail}
                   onChange={handleChange}
                   disabled={isSubmitting}
                   readOnly
+                  className="bg-slate-50 border-slate-200"
                 />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="phone">Phone Number</Label>
                 <Input
-                  id="phone"
-                  name="phone"
+                  id="organizationPhone"
+                  name="organizationPhone"
                   placeholder="Enter your phone number"
                   value={formData.organizationPhone}
                   onChange={handleChange}
                   disabled={isSubmitting}
                   readOnly
+                  className="bg-slate-50 border-slate-200"
                 />
               </div>
 
@@ -203,6 +192,7 @@ export function ProfileForm() {
                   onChange={handleChange}
                   disabled={isSubmitting}
                   readOnly
+                  className="bg-slate-50 border-slate-200"
                 />
               </div>
             </div>
@@ -214,6 +204,6 @@ export function ProfileForm() {
           </CardFooter> */}
         </form>
       </Card>
-    </motion.div>
+    </div>
   );
 }

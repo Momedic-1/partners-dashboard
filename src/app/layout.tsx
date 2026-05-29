@@ -36,6 +36,7 @@ import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/toaster"
 import { AuthProvider } from "@/AuthContext"
+import { AuthRouteGuard } from "@/components/auth-route-guard"
 
 export const metadata: Metadata = {
   title: "Partner Dashboard",
@@ -82,9 +83,14 @@ export default function RootLayout({
         />
       </head>
       <body className="font-inter">
-        <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="light"
+          enableSystem={false}
+          forcedTheme="light"
+        >
           <AuthProvider>
-            {children}
+            <AuthRouteGuard>{children}</AuthRouteGuard>
             <Toaster />
           </AuthProvider>
         </ThemeProvider>

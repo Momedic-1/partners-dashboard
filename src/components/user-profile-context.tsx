@@ -73,17 +73,17 @@ export function UserProfileProvider({ children }: { children: ReactNode }) {
   // Initialize or update profile whenever the auth user changes
   useEffect(() => {
     if (user) {
-      // Split full name into first and last names
-      const [firstName, ...rest] = user.name.trim().split(" ")
+      const safeName = (user.name || user.email || "Partner").trim()
+      const [firstName, ...rest] = safeName.split(" ")
       const lastName = rest.join(" ") || ""
 
       setUserProfile({
         firstName,
         lastName,
         email: user.email,
-        phone: user.phone || "",
-        organizationName: user.organizationName || "",
-        avatarUrl: user.avatarUrl || "",
+        phone: (user.phone as string) || "",
+        organizationName: (user.organizationName as string) || "",
+        avatarUrl: (user.avatarUrl as string) || "",
       })
     } else {
       setUserProfile(null)

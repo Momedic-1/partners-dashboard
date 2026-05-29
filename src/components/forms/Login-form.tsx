@@ -4,110 +4,113 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/AuthContext";
 import { Eye, EyeOff } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 const LoginForm = () => {
   const [credentials, setCredentials] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false); // 👈 new loading state
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
   const { login } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
-    setLoading(true); // 👈 start loading
+    setLoading(true);
 
     try {
-      await login(credentials.email, credentials.password);
-      router.push("/dashboard");
-    } catch (err: any) {
-      if (err.response?.status === 401) {
+      const user = await login(credentials.email, credentials.password);
+      if (user.mustChangePassword === true) {
+        router.push("/auth/change-password");
+      } else {
+        router.push("/dashboard");
+      }
+    } catch (err: unknown) {
+      const ax = err as {
+        response?: { status?: number; data?: { message?: string } };
+        message?: string;
+      };
+      if (ax.response?.status === 401) {
         setError("Incorrect email or password");
       } else {
         setError(
-          err.response?.data?.message ||
-            err.message ||
+          ax.response?.data?.message ||
+            ax.message ||
             "Login failed. Please try again."
         );
       }
     } finally {
-      setLoading(false); // 👈 stop loading
+      setLoading(false);
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setCredentials({ ...credentials, [e.target.name]: e.target.value });
-  };
-
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <input
-        type="email"
-        name="email"
-        value={credentials.email}
-        onChange={handleChange}
-        placeholder="Email"
-        required
-        className="w-full px-4 py-2 border border-gray-300 rounded-md"
-      />
-
-      <div className="relative">
-        <input
-          type={showPassword ? "text" : "password"}
-          name="password"
-          value={credentials.password}
-          onChange={handleChange}
-          placeholder="Password"
+    <form onSubmit={handleSubmit} className="space-y-5">
+      <div className="space-y-2">
+        <Label htmlFor="email">Work email</Label>
+        <Input
+          id="email"
+          type="email"
+          name="email"
+          value={credentials.email}
+          onChange={(e) =>
+            setCredentials({ ...credentials, email: e.target.value })
+          }
+          placeholder="you@organization.com"
           required
-          className="w-full px-4 py-2 border border-gray-300 rounded-md pr-10"
+          autoComplete="email"
+          className="h-11"
         />
-        <button
-          type="button"
-          onClick={() => setShowPassword((prev) => !prev)}
-          className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-gray-500 hover:text-gray-700"
-        >
-          {showPassword ? (
-            <EyeOff className="h-5 w-5" />
-          ) : (
-            <Eye className="h-5 w-5" />
-          )}
-        </button>
       </div>
 
-      {error && <div className="text-red-600 text-sm">{error}</div>}
+      <div className="space-y-2">
+        <Label htmlFor="password">Password</Label>
+        <div className="relative">
+          <Input
+            id="password"
+            type={showPassword ? "text" : "password"}
+            name="password"
+            value={credentials.password}
+            onChange={(e) =>
+              setCredentials({ ...credentials, password: e.target.value })
+            }
+            placeholder="••••••••"
+            required
+            autoComplete="current-password"
+            className="h-11 pr-10"
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword((prev) => !prev)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700"
+            aria-label={showPassword ? "Hide password" : "Show password"}
+          >
+            {showPassword ? (
+              <EyeOff className="h-5 w-5" />
+            ) : (
+              <Eye className="h-5 w-5" />
+            )}
+          </button>
+        </div>
+      </div>
 
-      <button
+      {error && (
+        <p className="text-sm text-red-600" role="alert">
+          {error}
+        </p>
+      )}
+
+      <Button
         type="submit"
         disabled={loading}
-        className={`w-full flex justify-center cursor-pointer items-center bg-blue-900 text-white py-2 rounded-md ${
-          loading ? "opacity-50 cursor-not-allowed" : "hover:bg-blue-700"
-        }`}
+        variant="brand"
+        className="h-11 w-full"
       >
-        {loading ? (
-          <svg
-            className="animate-spin h-5 w-5 mr-2 text-white"
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <circle
-              className="opacity-25"
-              cx="12"
-              cy="12"
-              r="10"
-              stroke="currentColor"
-              strokeWidth="4"
-            ></circle>
-            <path
-              className="opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-            ></path>
-          </svg>
-        ) : null}
-        {loading ? "Logging in..." : "Login"}
-      </button>
+        {loading ? "Signing in…" : "Sign in"}
+      </Button>
     </form>
   );
 };

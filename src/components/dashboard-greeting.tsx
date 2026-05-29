@@ -1,81 +1,81 @@
-"use client"
+"use client";
 
-import { useUserProfile } from "@/components/user-profile-context"
-import { Card, CardContent } from "@/components/ui/card"
-import { motion } from "framer-motion"
-import { useState, useEffect } from "react"
+import { useUserProfile } from "@/components/user-profile-context";
+import { useAuth } from "@/AuthContext";
+import { useState, useEffect } from "react";
+import { Building2, Calendar, Loader2 } from "lucide-react";
 
 export function DashboardGreeting() {
-  const { userProfile } = useUserProfile()
-  const [greeting, setGreeting] = useState("")
-  const [currentTime, setCurrentTime] = useState(new Date())
+  const { userProfile } = useUserProfile();
+  const { user } = useAuth();
+  const [greeting, setGreeting] = useState("");
+  const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
-    const hour = currentTime.getHours()
+    const hour = currentTime.getHours();
+    if (hour < 12) setGreeting("Good morning");
+    else if (hour < 18) setGreeting("Good afternoon");
+    else setGreeting("Good evening");
 
-    if (hour < 12) {
-      setGreeting("Good morning")
-    } else if (hour < 18) {
-      setGreeting("Good afternoon")
-    } else {
-      setGreeting("Good evening")
-    }
+    const timer = setInterval(() => setCurrentTime(new Date()), 60000);
+    return () => clearInterval(timer);
+  }, [currentTime]);
 
-    const timer = setInterval(() => {
-      setCurrentTime(new Date())
-    }, 60000)
+  const fallbackName =
+    user?.name?.trim() ||
+    user?.email?.split("@")[0] ||
+    "Partner";
+  const fullName = userProfile
+    ? `${userProfile.firstName}${userProfile.lastName ? ` ${userProfile.lastName}` : ""}`.trim()
+    : fallbackName;
+  const orgName =
+    userProfile?.organizationName ||
+    (user?.organizationName as string) ||
+    "Your organization";
 
-    return () => clearInterval(timer)
-  }, [currentTime])
-
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString("en-US", {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    })
+  if (!user && !userProfile) {
+    return (
+      <div className="flex items-center justify-center rounded-2xl border border-slate-200 bg-white p-8">
+        <Loader2 className="h-6 w-6 animate-spin text-[#020E7C]" />
+      </div>
+    );
   }
-
-  if (!userProfile) {
-    return null // or a loading state
-  }
-
-  const fullName = `${userProfile.firstName}${userProfile.lastName ? ` ${userProfile.lastName}` : ""}`
 
   return (
-    <Card className="bg-gradient-to-r from-primary/20 to-primary/5 border-none overflow-hidden">
-      <CardContent className="p-3 md:p-6">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5 }}
-          >
-            <h2 className="text-2xl font-bold">
-              {greeting}, {fullName}
-            </h2>
-            <p className="text-muted-foreground mt-1">
-            Welcome to your partner dashboard
-            </p>
-          </motion.div>
+    <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#020E7C] via-[#1e40af] to-[#3b82f6] p-6 text-white shadow-lg shadow-[#020E7C]/20 md:p-8">
+      <div className="absolute -right-8 -top-8 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
+      <div className="absolute -bottom-12 -left-8 h-32 w-32 rounded-full bg-blue-300/20 blur-2xl" />
 
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="flex flex-row items-center justify-center gap-6 text-right"
-          >
-            <p className="text-sm font-medium">{formatDate(currentTime)}</p>
-            <p className="text-sm text-muted-foreground">
-              {currentTime.toLocaleTimeString("en-US", {
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
-            </p>
-          </motion.div>
+      <div className="relative flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+        <div>
+          <p className="text-sm font-medium text-blue-100">Partner dashboard</p>
+          <h2 className="mt-1 text-2xl font-bold md:text-3xl">
+            {greeting}, {fullName}
+          </h2>
+          <p className="mt-2 flex items-center gap-2 text-sm text-blue-100/90">
+            <Building2 className="h-4 w-4 shrink-0" />
+            {orgName}
+          </p>
         </div>
-      </CardContent>
-    </Card>
-  )
+
+        <div className="flex flex-col gap-1 rounded-xl bg-white/10 px-4 py-3 backdrop-blur-sm md:text-right">
+          <div className="flex items-center gap-2 text-sm font-medium md:justify-end">
+            <Calendar className="h-4 w-4" />
+            {currentTime.toLocaleDateString("en-GB", {
+              weekday: "long",
+              day: "numeric",
+              month: "long",
+              year: "numeric",
+            })}
+          </div>
+          <p className="text-lg font-semibold tabular-nums">
+            {currentTime.toLocaleTimeString("en-GB", {
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
 }

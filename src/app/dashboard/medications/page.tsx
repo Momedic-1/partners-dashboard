@@ -52,7 +52,9 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import axios from "@/lib/axios";
 import { baseUrl } from "@/env";
 import { useAuth } from "@/AuthContext";
+import { getOrganizationId } from "@/lib/organization";
 import { useEffect, useState } from "react";
+import { DashboardHeader } from "@/components/dashboard-header";
 
 interface Prescription {
   id: number;
@@ -91,7 +93,7 @@ const PrescriptionReports = () => {
       return;
     }
 
-    const organizationId = user?.id;
+    const organizationId = getOrganizationId(user);
     if (!organizationId) {
       setError("Organization ID not found.");
       setAccessLoading(false);
@@ -165,7 +167,7 @@ const PrescriptionReports = () => {
       return;
     }
 
-    const organizationId = user?.id;
+    const organizationId = getOrganizationId(user);
     if (!organizationId) {
       setError("Organization ID not found.");
       setLoading(false);
@@ -221,7 +223,7 @@ const PrescriptionReports = () => {
   // Access loading component
   if (accessLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-4 sm:p-6 lg:p-8">
+      <div className="space-y-6">
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -262,7 +264,7 @@ const PrescriptionReports = () => {
   // Access denied component
   if (!hasAccess) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-red-50 via-orange-50 to-yellow-50 p-4 sm:p-6 lg:p-8">
+      <div className="space-y-6">
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -305,116 +307,42 @@ const PrescriptionReports = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-0 lg:p-8">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
-        className="max-w-7xl mx-auto space-y-6"
-      >
-        {/* Header Section */}
-        <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.1 }}
-          className="text-center sm:text-left"
-        >
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-2">
-            <div>
-              <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-700 bg-clip-text text-transparent">
-                Prescription Reports
-              </h1>
-              <p className="text-gray-600 mt-2 text-lg">
-                Comprehensive view of all client prescriptions
-              </p>
-            </div>
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <Button
-                onClick={() => fetchPrescriptions()}
-                variant="outline"
-                className="bg-white/80 backdrop-blur-sm border-2 hover:border-blue-300 transition-all duration-200"
-              >
-                <RefreshCw className="mr-2 h-4 w-4" />
-                Refresh
-              </Button>
-            </motion.div>
-          </div>
+    <div className="space-y-6">
+      <DashboardHeader
+        heading="Medications"
+        text="View and export prescription records for your organization"
+      />
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <Card className="border-0 bg-[#020E7C] text-white shadow-sm">
+          <CardContent className="p-4">
+            <p className="text-sm text-white/80">Total</p>
+            <p className="text-2xl font-bold">{prescriptions.length}</p>
+          </CardContent>
+        </Card>
+        <Card className="border border-slate-200 bg-white shadow-sm">
+          <CardContent className="p-4">
+            <p className="text-sm text-slate-500">Doctors</p>
+            <p className="text-2xl font-bold text-slate-900">{doctors.length}</p>
+          </CardContent>
+        </Card>
+        <Card className="border-0 bg-emerald-600 text-white shadow-sm">
+          <CardContent className="p-4">
+            <p className="text-sm text-white/80">Filtered</p>
+            <p className="text-2xl font-bold">{filteredPrescriptions.length}</p>
+          </CardContent>
+        </Card>
+        <Card className="border-0 bg-amber-500 text-white shadow-sm">
+          <CardContent className="p-4">
+            <p className="text-sm text-white/80">This month</p>
+            <p className="text-2xl font-bold">
+              {prescriptions.filter((p) => new Date(p.createdAt).getMonth() === new Date().getMonth()).length}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
 
-          {/* Statistics Cards */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6"
-          >
-            <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-500 to-blue-600 text-white">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <FileText className="h-6 w-6" />
-                  <div>
-                    <p className="text-blue-100 text-sm">Total</p>
-                    <p className="text-2xl font-bold">{prescriptions.length}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-0 shadow-lg bg-gradient-to-br from-green-500 to-green-600 text-white">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <User className="h-6 w-6" />
-                  <div>
-                    <p className="text-green-100 text-sm">Doctors</p>
-                    <p className="text-2xl font-bold">{doctors.length}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-0 shadow-lg bg-gradient-to-br from-purple-500 to-purple-600 text-white">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <Pill className="h-6 w-6" />
-                  <div>
-                    <p className="text-purple-100 text-sm">Filtered</p>
-                    <p className="text-2xl font-bold">
-                      {filteredPrescriptions.length}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-0 shadow-lg bg-gradient-to-br from-amber-500 to-amber-600 text-white">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <Calendar className="h-6 w-6" />
-                  <div>
-                    <p className="text-amber-100 text-sm">This Month</p>
-                    <p className="text-2xl font-bold">
-                      {
-                        prescriptions.filter(
-                          (p) =>
-                            new Date(p.createdAt).getMonth() ===
-                            new Date().getMonth()
-                        ).length
-                      }
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        </motion.div>
-
-        {/* Main Content Card */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-        >
-          <Card className="border-0 shadow-xl bg-white/90 backdrop-blur-sm">
-            <CardHeader className="border-b border-gray-100 bg-gradient-to-r from-white to-blue-50/50">
+      <Card className="border border-slate-200/80 bg-white shadow-sm">
+            <CardHeader className="border-b border-slate-100">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
                   <CardTitle className="text-xl font-semibold text-gray-900">
@@ -431,7 +359,7 @@ const PrescriptionReports = () => {
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                     >
-                      <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg">
+                      <Button variant="brand">
                         <Download className="mr-2 h-4 w-4" />
                         Export Data
                       </Button>
@@ -548,7 +476,7 @@ const PrescriptionReports = () => {
 
               {/* Table Container */}
               <div className="border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-                <div className="overflow-x-auto">
+                <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-gradient-to-r from-gray-50 to-blue-50/50 border-gray-200">
@@ -754,9 +682,7 @@ const PrescriptionReports = () => {
                 </div>
               </div>
             </CardContent>
-          </Card>
-        </motion.div>
-      </motion.div>
+      </Card>
     </div>
   );
 };

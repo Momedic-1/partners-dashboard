@@ -678,6 +678,7 @@ import { ArrowUpRight, Wallet } from "lucide-react"
 import { useAuth } from "@/AuthContext"
 import axios from "@/lib/axios"
 import { baseUrl } from "@/env"
+import { getOrganizationId } from "@/lib/organization"
 
 const PAYSTACK_CHECKOUT_URL = "https://checkout.paystack.com/g6dg64fkfh90slq"
 
@@ -689,7 +690,7 @@ export function FundWalletForm() {
   const [isVerifying, setIsVerifying] = useState<boolean>(false)
   const [verificationMessage, setVerificationMessage] = useState<string | null>(null)
 
-  const orgId = user?.id
+  const orgId = getOrganizationId(user)
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)

@@ -111,6 +111,7 @@ import { motion } from "framer-motion"
 import axios from '@/lib/axios'
 import { baseUrl } from '@/env'
 import { useAuth } from '@/AuthContext'
+import { getOrganizationId } from '@/lib/organization'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 
@@ -146,7 +147,7 @@ export function RecentTransactions() {
         return
       }
 
-      const orgId = user.id
+      const orgId = getOrganizationId(user)
       if (!orgId) {
         setError("Organization not found")
         setLoading(false)

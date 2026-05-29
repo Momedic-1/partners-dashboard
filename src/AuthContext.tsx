@@ -3,15 +3,13 @@
 import { baseUrl } from "@/env";
 import axios from "axios";
 import { useRouter } from "next/navigation";
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 
-// Utility to check if JWT token is expired
 const isTokenExpired = (token: string): boolean => {
   try {
     const [, payload] = token.split(".");
     const decoded = JSON.parse(atob(payload));
-    const exp = decoded.exp;
-    return Date.now() >= exp * 1000; // exp is in seconds, convert to ms
+    return Date.now() >= decoded.exp * 1000;
   } catch {
     return true;
   }
@@ -19,10 +17,12 @@ const isTokenExpired = (token: string): boolean => {
 
 export interface User {
   id: string;
-  organizationId?: number;
+  organizationId: number;
   email: string;
   name: string;
-  [key: string]: any;
+  role?: string;
+  mustChangePassword?: boolean;
+  [key: string]: unknown;
 }
 
 export interface AuthContextType {
@@ -31,6 +31,8 @@ export interface AuthContextType {
   loading: boolean;
   login: (email: string, password: string) => Promise<User>;
   logout: () => void;
+  refreshUserFromStorage: () => void;
+  setMustChangePassword: (value: boolean) => void;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -41,72 +43,105 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  const login = async (email: string, password: string): Promise<User> => {
-    try {
-      const response = await axios.post(`${baseUrl}/api/organization/login`, {
-        email,
-        password,
-      });
-
-      const { token, orgAdminLoginDto } = response.data;
-
-      const userData: User = {
-        id: orgAdminLoginDto.id,
-        organizationId: orgAdminLoginDto.organizationId,
-        email: orgAdminLoginDto.email,
-        name: orgAdminLoginDto.name,
-      };
-
-      setToken(token);
-      setUser(userData);
-
-      localStorage.setItem("authToken", token);
-      localStorage.setItem("userData", JSON.stringify(userData));
-
-      return userData;
-    } catch (error: any) {
-      console.error("Login failed:", error);
-      throw new Error(error.response?.data?.message || "Login failed");
-    }
+  const persistSession = (authToken: string, userData: User) => {
+    setToken(authToken);
+    setUser(userData);
+    localStorage.setItem("authToken", authToken);
+    localStorage.setItem("userData", JSON.stringify(userData));
   };
 
-  const logout = () => {
+  const login = async (email: string, password: string): Promise<User> => {
+    const response = await axios.post(`${baseUrl}/api/organization/login`, {
+      email,
+      password,
+    });
+
+    const { token: authToken, orgAdminLoginDto } = response.data;
+
+    // Production API may not send organizationId yet — match live portal behaviour
+    // (use admin account id for org-scoped routes until backend is updated).
+    const organizationId =
+      orgAdminLoginDto.organizationId != null
+        ? Number(orgAdminLoginDto.organizationId)
+        : Number(orgAdminLoginDto.id);
+
+    const userData: User = {
+      id: String(orgAdminLoginDto.id),
+      organizationId,
+      email: orgAdminLoginDto.email,
+      name: orgAdminLoginDto.name,
+      role: orgAdminLoginDto.role,
+      // Only force password change when API explicitly requests it (new partners).
+      mustChangePassword: orgAdminLoginDto.mustChangePassword === true,
+    };
+
+    persistSession(authToken, userData);
+    return userData;
+  };
+
+  const logout = useCallback(() => {
     setToken(null);
     setUser(null);
     localStorage.removeItem("authToken");
     localStorage.removeItem("userData");
     router.push("/auth/login");
+  }, [router]);
+
+  const refreshUserFromStorage = () => {
+    const storedUser = localStorage.getItem("userData");
+    if (storedUser) setUser(JSON.parse(storedUser));
   };
 
-  // On mount, initialize token and user from localStorage
+  const setMustChangePassword = (value: boolean) => {
+    setUser((prev) => {
+      if (!prev) return prev;
+      const next = { ...prev, mustChangePassword: value };
+      localStorage.setItem("userData", JSON.stringify(next));
+      return next;
+    });
+  };
+
   useEffect(() => {
     const storedToken = localStorage.getItem("authToken");
     const storedUser = localStorage.getItem("userData");
 
     if (storedToken && isTokenExpired(storedToken)) {
-      logout(); // Expired token, force logout
+      localStorage.removeItem("authToken");
+      localStorage.removeItem("userData");
+      setLoading(false);
       return;
     }
 
     if (storedToken) setToken(storedToken);
-    if (storedUser) setUser(JSON.parse(storedUser));
-
+    if (storedUser) {
+      try {
+        setUser(JSON.parse(storedUser));
+      } catch {
+        localStorage.removeItem("userData");
+      }
+    }
     setLoading(false);
   }, []);
 
-  // Periodically check if token is expired
   useEffect(() => {
     const interval = setInterval(() => {
-      if (token && isTokenExpired(token)) {
-        logout();
-      }
-    }, 60 * 1000); // Check every 1 minute
-
+      if (token && isTokenExpired(token)) logout();
+    }, 60 * 1000);
     return () => clearInterval(interval);
-  }, [token]);
+  }, [token, logout]);
 
   return (
-    <AuthContext.Provider value={{ token, user, loading, login, logout }}>
+    <AuthContext.Provider
+      value={{
+        token,
+        user,
+        loading,
+        login,
+        logout,
+        refreshUserFromStorage,
+        setMustChangePassword,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

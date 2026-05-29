@@ -3,7 +3,9 @@
 import { useState, useEffect } from "react";
 import axios from "@/lib/axios";
 import { baseUrl } from "@/env";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { SectionCard } from "@/components/dashboard/section-card";
+import { DataToolbar } from "@/components/dashboard/data-toolbar";
 import {
   Table,
   TableBody,
@@ -20,7 +22,6 @@ import {
   MoreHorizontal,
   Search,
   Trash2,
-  Filter,
   Mail,
   Phone,
   Calendar,
@@ -29,7 +30,6 @@ import {
   PhoneCall,
   Settings,
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -65,6 +65,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/AuthContext";
+import { getOrganizationId } from "@/lib/organization";
 
 interface User {
   userId: number; // Changed from id to userId to match API response
@@ -90,6 +91,8 @@ export function UserManagement() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
+  const [sortNewestFirst, setSortNewestFirst] = useState(true);
   const [userToDelete, setUserToDelete] = useState<number | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -105,6 +108,7 @@ export function UserManagement() {
   const selectedUser = users.find((user) => user.userId === selectedUserId);
   const selectedUserName = selectedUser?.fullName || "User";
   const { user, token } = useAuth();
+  const orgId = getOrganizationId(user);
 
   // Fetch users from API
   useEffect(() => {
@@ -112,14 +116,13 @@ export function UserManagement() {
       setLoading(true);
       setError(null);
 
-      if (!user || !token) {
+      if (!user || !token || !orgId) {
         setError("Not authenticated.");
         setLoading(false);
         return;
       }
 
       try {
-        const orgId = user.id;
         const res = await axios.get<UserResponse>(
           `${baseUrl}/api/organization/organization/${orgId}/users`,
           {
@@ -147,7 +150,7 @@ export function UserManagement() {
     };
 
     fetchUsers();
-  }, [currentPage, pageSize, user, token]);
+  }, [currentPage, pageSize, user, token, orgId]);
 
   const getInitials = (name: string | undefined) => {
     if (!name) return "??";
@@ -191,7 +194,7 @@ export function UserManagement() {
 
     try {
       await axios.delete(
-        `${baseUrl}/api/organization/organizations/${user.id}/users/${userToDelete}`,
+        `${baseUrl}/api/organization/organizations/${orgId}/users/${userToDelete}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -237,7 +240,7 @@ const openCallModal = async (userId: number) => {
       
       // Use the API endpoint you provided to get current settings
       const response = await axios.get(
-        `${baseUrl}/api/call-access/${user.id}/patient/${userId}/can-call`,
+        `${baseUrl}/api/call-access/${orgId}/patient/${userId}/can-call`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -289,7 +292,7 @@ const openCallModal = async (userId: number) => {
 
     try {
       console.log("Attempting to update call settings for:", {
-        organizationId: user.id,
+        organizationId: orgId,
         patientId: selectedUserId,
         callAccessEnabled,
         callLimit,
@@ -298,7 +301,7 @@ const openCallModal = async (userId: number) => {
 
       // First, try to set call access enabled/disabled
       const callAccessResponse = await axios.patch(
-        `${baseUrl}/api/call-access/${user.id}/patient/${selectedUserId}/call-access-enabled?enabled=${callAccessEnabled}`,
+        `${baseUrl}/api/call-access/${orgId}/patient/${selectedUserId}/call-access-enabled?enabled=${callAccessEnabled}`,
         {},
         {
           headers: {
@@ -312,7 +315,7 @@ const openCallModal = async (userId: number) => {
       // Set call limit and period only if call access is enabled
       if (callAccessEnabled) {
         const callLimitResponse = await axios.post(
-          `${baseUrl}/api/call-access/${user.id}/patient/${selectedUserId}/set-call-limit?callLimit=${callLimit}&period=${callPeriod}`,
+          `${baseUrl}/api/call-access/${orgId}/patient/${selectedUserId}/set-call-limit?callLimit=${callLimit}&period=${callPeriod}`,
           {},
           {
             headers: {
@@ -371,67 +374,48 @@ const openCallModal = async (userId: number) => {
     .sort((a, b) => {
       const dateA = a.dateUploaded ? new Date(a.dateUploaded).getTime() : 0;
       const dateB = b.dateUploaded ? new Date(b.dateUploaded).getTime() : 0;
-      return dateB - dateA; // Most recent first
+      return sortNewestFirst ? dateB - dateA : dateA - dateB;
     });
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="space-y-6 max-w-7xl mx-auto"
-    >
-      {/* Header Section */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="space-y-1">
-          <h1 className="text-3xl font-bold tracking-tight text-gray-900">
-            User Management
-          </h1>
-          <p className="text-gray-500">
-            Manage and monitor your organization&#39;s users
-          </p>
-        </div>
-      </div>
-
-      {/* Main Table Card */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.5 }}
+    <>
+      <SectionCard
+        title={`All users (${users.length})`}
+        description="Search, sort, and manage organization members"
+        noPadding
+        contentClassName="min-w-0"
       >
-        <Card className="shadow-sm border-0 bg-white">
-          <CardHeader className="border-b border-gray-100 pb-4">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div>
-                <CardTitle className="text-xl font-semibold">
-                  All Users ({users.length})
-                </CardTitle>
-              </div>
-
-              {/* Search and Filter Controls */}
-              <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                  <Input
-                    placeholder="Search users..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 w-full sm:w-80 border-gray-200 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
+        <div className="border-b border-slate-100 px-4 py-4 sm:px-6">
+          <DataToolbar
+            searchPlaceholder="Search by name, email, or phone…"
+            searchValue={searchTerm}
+            onSearchChange={setSearchTerm}
+            onFilterClick={() => setShowFilters((v) => !v)}
+            showFilters={showFilters}
+            filterPanel={
+              <div className="flex flex-wrap gap-2">
                 <Button
-                  variant="outline"
+                  type="button"
                   size="sm"
-                  className="gap-2 whitespace-nowrap"
+                  variant={sortNewestFirst ? "brand" : "outline"}
+                  onClick={() => setSortNewestFirst(true)}
                 >
-                  <Filter className="h-4 w-4" />
-                  Filter
+                  Newest first
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={!sortNewestFirst ? "brand" : "outline"}
+                  onClick={() => setSortNewestFirst(false)}
+                >
+                  Oldest first
                 </Button>
               </div>
-            </div>
-          </CardHeader>
+            }
+          />
+        </div>
 
-          <CardContent className="p-0">
+        <div className="min-w-0">
             {loading ? (
               <div className="text-center py-12">
                 <div className="animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
@@ -452,8 +436,8 @@ const openCallModal = async (userId: number) => {
             ) : (
               <>
                 {/* Desktop Table */}
-                <div className="hidden lg:block">
-                  <Table>
+                <div className="hidden min-w-0 overflow-hidden lg:block">
+                  <Table className="w-full table-fixed">
                     <TableHeader>
                       <TableRow className="border-gray-100">
                         <TableHead className="font-semibold text-gray-700 pl-6">
@@ -486,15 +470,10 @@ const openCallModal = async (userId: number) => {
                           </TableCell>
                         </TableRow>
                       ) : (
-                        <AnimatePresence>
-                          {filtered.map((u, i) => (
-                            <motion.tr
+                        filtered.map((u) => (
+                            <TableRow
                               key={u.userId}
-                              initial={{ opacity: 0, y: 10 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              exit={{ opacity: 0, y: -10 }}
-                              transition={{ duration: 0.3, delay: i * 0.05 }}
-                              className="border-gray-100 hover:bg-gray-50 transition-colors"
+                              className="border-slate-100 hover:bg-slate-50/80"
                             >
                               <TableCell className="pl-6">
                                 <div className="flex items-center gap-3">
@@ -503,7 +482,7 @@ const openCallModal = async (userId: number) => {
                                       src={u.avatarUrl || ""}
                                       alt={u.fullName}
                                     />
-                                    <AvatarFallback className="bg-gradient-to-br from-blue-500 to-blue-600 text-white font-semibold">
+                                    <AvatarFallback className="bg-[#020E7C] font-semibold text-white">
                                       {getInitials(u.fullName)}
                                     </AvatarFallback>
                                   </Avatar>
@@ -573,9 +552,8 @@ const openCallModal = async (userId: number) => {
                                   </DropdownMenuContent>
                                 </DropdownMenu>
                               </TableCell>
-                            </motion.tr>
-                          ))}
-                        </AnimatePresence>
+                            </TableRow>
+                        ))
                       )}
                     </TableBody>
                   </Table>
@@ -594,16 +572,11 @@ const openCallModal = async (userId: number) => {
                       </p>
                     </div>
                   ) : (
-                    <AnimatePresence>
-                      {filtered.map((u, i) => (
-                        <motion.div
-                          key={u.userId}
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -20 }}
-                          transition={{ duration: 0.3, delay: i * 0.05 }}
-                        >
-                          <Card className="border border-gray-200 hover:shadow-md transition-shadow">
+                    filtered.map((u) => (
+                          <Card
+                            key={u.userId}
+                            className="border border-slate-200 shadow-sm transition-shadow hover:shadow-md"
+                          >
                             <CardContent className="p-4">
                               <div className="flex items-start justify-between">
                                 <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -612,7 +585,7 @@ const openCallModal = async (userId: number) => {
                                       src={u.avatarUrl || ""}
                                       alt={u.fullName}
                                     />
-                                    <AvatarFallback className="bg-gradient-to-br from-blue-500 to-blue-600 text-white font-semibold">
+                                    <AvatarFallback className="bg-[#020E7C] font-semibold text-white">
                                       {getInitials(u.fullName)}
                                     </AvatarFallback>
                                   </Avatar>
@@ -681,9 +654,7 @@ const openCallModal = async (userId: number) => {
                               </div>
                             </CardContent>
                           </Card>
-                        </motion.div>
-                      ))}
-                    </AnimatePresence>
+                    ))
                   )}
                 </div>
 
@@ -728,17 +699,11 @@ const openCallModal = async (userId: number) => {
                                 <Button
                                   key={pageNum}
                                   variant={
-                                    pageNum === currentPage
-                                      ? "default"
-                                      : "outline"
+                                    pageNum === currentPage ? "brand" : "outline"
                                   }
                                   size="sm"
                                   onClick={() => handlePageChange(pageNum)}
-                                  className={`w-8 h-8 p-0 ${
-                                    pageNum === currentPage
-                                      ? "bg-blue-600 hover:bg-blue-700"
-                                      : ""
-                                  }`}
+                                  className="h-8 w-8 p-0"
                                 >
                                   {pageNum}
                                 </Button>
@@ -763,9 +728,8 @@ const openCallModal = async (userId: number) => {
                 )}
               </>
             )}
-          </CardContent>
-        </Card>
-      </motion.div>
+        </div>
+      </SectionCard>
 
       {/* Call Settings Modal */}
       <Dialog open={isCallModalOpen} onOpenChange={setIsCallModalOpen}>
@@ -904,7 +868,8 @@ const openCallModal = async (userId: number) => {
             <Button
               onClick={handleCallSettingsUpdate}
               disabled={isUpdatingCallSettings}
-              className="gap-2 cursor-pointer border border-blue-500 hover:bg-blue-300 hover:text-white"
+              variant="brand"
+              className="gap-2"
             >
               {isUpdatingCallSettings && (
                 <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
@@ -943,6 +908,6 @@ const openCallModal = async (userId: number) => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </motion.div>
+    </>
   );
 }

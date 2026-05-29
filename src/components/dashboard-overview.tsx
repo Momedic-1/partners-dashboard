@@ -1,47 +1,31 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowUpRight, Wallet, Users, Calendar } from "lucide-react";
+import { ArrowUpRight, Wallet, Users, Calendar, Loader2 } from "lucide-react";
 import Link from "next/link";
 import axios from "@/lib/axios";
 import { baseUrl } from "@/env";
 import { useAuth } from "@/AuthContext";
+import { getOrganizationId } from "@/lib/organization";
+import { StatCard } from "@/components/dashboard/stat-card";
 
 export function DashboardOverview() {
   const { user, token } = useAuth();
-  const orgId = user?.id;
+  const orgId = getOrganizationId(user);
 
-  const [walletBalance, setWalletBalance] = useState<number>(0);
-  const [activeUsers, setActiveUsers] = useState<number>(0);
-  const [completedConsultations, setCompletedConsultations] =
-    useState<number>(0);
+  const [walletBalance, setWalletBalance] = useState(0);
+  const [activeUsers, setActiveUsers] = useState(0);
+  const [completedConsultations, setCompletedConsultations] = useState(0);
   const [loadingStats, setLoadingStats] = useState(true);
-  const [errorStats, setErrorStats] = useState<string | null>(null);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
   useEffect(() => {
     async function fetchStats() {
       if (!token || !orgId) {
-        console.log("Missing token or orgId", { token, orgId });
         setLoadingStats(false);
         return;
       }
 
       setLoadingStats(true);
-      setErrorStats(null);
-
       try {
         const [usersRes, consultRes, balanceRes] = await Promise.all([
           axios.get(`${baseUrl}/api/organization/${orgId}/stats/users`, {
@@ -49,26 +33,18 @@ export function DashboardOverview() {
           }),
           axios.get(
             `${baseUrl}/api/organization/${orgId}/consultations/completed-count`,
-            {
-              headers: { Authorization: `Bearer ${token}` },
-            }
+            { headers: { Authorization: `Bearer ${token}` } }
           ),
           axios.get(`${baseUrl}/api/organization/${orgId}/balance`, {
             headers: { Authorization: `Bearer ${token}` },
           }),
         ]);
 
-        console.log("Users API response:", usersRes.data);
-        console.log("Consultations API response:", consultRes.data);
-        console.log("Balance API response:", balanceRes.data);
-
-        // API returns numbers directly, not objects
         setActiveUsers(usersRes.data ?? 0);
         setCompletedConsultations(consultRes.data ?? 0);
         setWalletBalance(balanceRes.data ?? 0);
-      } catch (err: any) {
+      } catch (err) {
         console.error("Error fetching dashboard stats:", err);
-        setErrorStats("Failed to load dashboard statistics");
       } finally {
         setLoadingStats(false);
       }
@@ -77,91 +53,58 @@ export function DashboardOverview() {
     fetchStats();
   }, [token, orgId]);
 
-  if (!mounted) return null;
-
-  const stats = [
-    {
-      title: "Active Users",
-      value: loadingStats ? "..." : activeUsers.toLocaleString(),
-      icon: Users,
-      link: "/dashboard/users",
-      description: "current",
-    },
-    {
-      title: "Consultations",
-      value: loadingStats ? "..." : completedConsultations.toLocaleString(),
-      icon: Calendar,
-      link: "/dashboard/reports",
-      description: "completed",
-    },
-  ];
+  const loading = loadingStats;
 
   return (
-    <div className="grid gap-4 grid-cols-1 lg:grid-cols-3">
-      <div className="transition-transform duration-300 hover:-translate-y-1 h-full">
-        <Card className="overflow-hidden h-full flex flex-col">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-gradient-to-r from-primary/10 to-primary/5">
-            <CardTitle className="text-sm font-medium">
-              Wallet Balance
-            </CardTitle>
-            <Wallet className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent className="pt-6 flex-grow">
-            <div className="text-2xl font-bold">
-              {loadingStats ? "..." : `₦${walletBalance.toLocaleString()}`}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Available for consultations
-            </p>
-          </CardContent>
-          <CardFooter className="mt-auto">
-            <Link href="/dashboard/wallet" passHref className="w-full">
-              <Button
-                variant="outline"
-                size="sm"
-                className="cursor-pointer w-full"
-              >
-                Fund Wallet
-                <ArrowUpRight className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
-          </CardFooter>
-        </Card>
+    <div className="space-y-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <StatCard
+          label="Wallet balance"
+          value={loading ? "—" : `₦${walletBalance.toLocaleString()}`}
+          icon={Wallet}
+          variant="brand"
+        />
+        <StatCard
+          label="Active members"
+          value={loading ? "—" : activeUsers.toLocaleString()}
+          icon={Users}
+          variant="neutral"
+        />
+        <StatCard
+          label="Completed consultations"
+          value={loading ? "—" : completedConsultations.toLocaleString()}
+          icon={Calendar}
+          variant="success"
+        />
       </div>
 
-      {stats.map((stat) => (
-        <div
-          key={stat.title}
-          className="transition-transform duration-300 hover:-translate-y-1 h-full"
-        >
-          <Card className="h-full flex flex-col">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                {stat.title}
-              </CardTitle>
-              <stat.icon className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent className="pt-6 flex-grow">
-              <div className="text-2xl font-bold">{stat.value}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                {stat.description}
-              </p>
-            </CardContent>
-            <CardFooter className="mt-auto">
-              <Link href={stat.link} passHref className="w-full">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="cursor-pointer w-full"
-                >
-                  View {stat.title}
-                  <ArrowUpRight className="ml-2 h-4 w-4" />
-                </Button>
-              </Link>
-            </CardFooter>
-          </Card>
-        </div>
-      ))}
+      {loading && (
+        <p className="flex items-center gap-2 text-sm text-slate-500">
+          <Loader2 className="h-4 w-4 animate-spin text-[#020E7C]" />
+          Loading statistics…
+        </p>
+      )}
+
+      <div className="flex flex-wrap gap-3">
+        <Link href="/dashboard/wallet">
+          <Button variant="brand">
+            Fund wallet
+            <ArrowUpRight className="ml-2 h-4 w-4" />
+          </Button>
+        </Link>
+        <Link href="/dashboard/users">
+          <Button variant="outline" className="border-slate-200">
+            Manage users
+            <ArrowUpRight className="ml-2 h-4 w-4" />
+          </Button>
+        </Link>
+        <Link href="/dashboard/reports">
+          <Button variant="outline" className="border-slate-200">
+            View reports
+            <ArrowUpRight className="ml-2 h-4 w-4" />
+          </Button>
+        </Link>
+      </div>
     </div>
   );
 }

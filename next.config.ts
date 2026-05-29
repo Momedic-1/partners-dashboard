@@ -1,10 +1,12 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
   eslint: {
-    // This disables running ESLint during the build
     ignoreDuringBuilds: true,
+  },
+  // Avoid unstable dev overlay on Windows when cache gets out of sync
+  devIndicators: {
+    position: "bottom-right",
   },
 };
 

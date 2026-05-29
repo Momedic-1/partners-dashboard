@@ -53,7 +53,9 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import axios from "@/lib/axios";
 import { baseUrl } from "@/env";
 import { useAuth } from "@/AuthContext";
+import { getOrganizationId } from "@/lib/organization";
 import { useEffect, useState } from "react";
+import { DashboardHeader } from "@/components/dashboard-header";
 
 interface InvestigationItem {
   investigationName: string;
@@ -97,8 +99,8 @@ const InvestigationReports = () => {
       return;
     }
 
-    const organizationId = Number(user?.id);
-    if (!organizationId || isNaN(organizationId)) {
+    const organizationId = getOrganizationId(user);
+    if (!organizationId) {
       setError("Organization ID not found.");
       setAccessLoading(false);
       return;
@@ -169,8 +171,8 @@ const InvestigationReports = () => {
       return;
     }
 
-    const organizationId = Number(user?.id);
-    if (!organizationId || isNaN(organizationId)) {
+    const organizationId = getOrganizationId(user);
+    if (!organizationId) {
       setError("Organization ID not found.");
       setLoading(false);
       return;
@@ -224,6 +226,13 @@ const InvestigationReports = () => {
 
   const hasActiveFilters = searchTerm !== "" || doctorFilter !== "all";
 
+  const cleanInstruction = (instruction?: string) => {
+    if (!instruction) return "";
+    const trimmed = instruction.trim();
+    if (trimmed.toLowerCase() === "perform as per protocol") return "";
+    return trimmed;
+  };
+
   const totalInvestigationsCount = investigations.reduce(
     (total, order) => total + order.items.length,
     0,
@@ -232,7 +241,7 @@ const InvestigationReports = () => {
   // Access loading component
   if (accessLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-4 sm:p-6 lg:p-8">
+      <div className="space-y-6">
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -273,7 +282,7 @@ const InvestigationReports = () => {
   // Access denied component
   if (!hasAccess) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-red-50 via-orange-50 to-yellow-50 p-4 sm:p-6 lg:p-8">
+      <div className="space-y-6">
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -316,118 +325,42 @@ const InvestigationReports = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-0 lg:p-8">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
-        className="max-w-7xl mx-auto space-y-6"
-      >
-        {/* Header Section */}
-        <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.1 }}
-          className="text-center sm:text-left"
-        >
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-2">
-            <div>
-              <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-700 bg-clip-text text-transparent">
-                Investigation Orders
-              </h1>
-              <p className="text-gray-600 mt-2 text-lg">
-                Comprehensive view of all client investigation orders
-              </p>
-            </div>
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <Button
-                onClick={() => fetchInvestigationOrders()}
-                variant="outline"
-                className="bg-white/80 backdrop-blur-sm border-2 hover:border-blue-300 transition-all duration-200"
-              >
-                <RefreshCw className="mr-2 h-4 w-4" />
-                Refresh
-              </Button>
-            </motion.div>
-          </div>
+    <div className="space-y-6">
+      <DashboardHeader
+        heading="Investigations"
+        text="View and export investigation orders for your organization"
+      />
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <Card className="border-0 bg-[#020E7C] text-white shadow-sm">
+          <CardContent className="p-4">
+            <p className="text-sm text-white/80">Total orders</p>
+            <p className="text-2xl font-bold">{investigations.length}</p>
+          </CardContent>
+        </Card>
+        <Card className="border border-slate-200 bg-white shadow-sm">
+          <CardContent className="p-4">
+            <p className="text-sm text-slate-500">Doctors</p>
+            <p className="text-2xl font-bold text-slate-900">{doctors.length}</p>
+          </CardContent>
+        </Card>
+        <Card className="border-0 bg-emerald-600 text-white shadow-sm">
+          <CardContent className="p-4">
+            <p className="text-sm text-white/80">Tests</p>
+            <p className="text-2xl font-bold">{totalInvestigationsCount}</p>
+          </CardContent>
+        </Card>
+        <Card className="border-0 bg-amber-500 text-white shadow-sm">
+          <CardContent className="p-4">
+            <p className="text-sm text-white/80">This month</p>
+            <p className="text-2xl font-bold">
+              {investigations.filter((inv) => new Date(inv.orderDate).getMonth() === new Date().getMonth()).length}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
 
-          {/* Statistics Cards */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6"
-          >
-            <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-500 to-blue-600 text-white">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <FileText className="h-6 w-6" />
-                  <div>
-                    <p className="text-blue-100 text-sm">Total Orders</p>
-                    <p className="text-2xl font-bold">
-                      {investigations.length}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-0 shadow-lg bg-gradient-to-br from-green-500 to-green-600 text-white">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <User className="h-6 w-6" />
-                  <div>
-                    <p className="text-green-100 text-sm">Doctors</p>
-                    <p className="text-2xl font-bold">{doctors.length}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-0 shadow-lg bg-gradient-to-br from-purple-500 to-purple-600 text-white">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <Microscope className="h-6 w-6" />
-                  <div>
-                    <p className="text-purple-100 text-sm">Investigations</p>
-                    <p className="text-2xl font-bold">
-                      {totalInvestigationsCount}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-0 shadow-lg bg-gradient-to-br from-amber-500 to-amber-600 text-white">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <Calendar className="h-6 w-6" />
-                  <div>
-                    <p className="text-amber-100 text-sm">This Month</p>
-                    <p className="text-2xl font-bold">
-                      {
-                        investigations.filter(
-                          (inv) =>
-                            new Date(inv.orderDate).getMonth() ===
-                            new Date().getMonth(),
-                        ).length
-                      }
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        </motion.div>
-
-        {/* Main Content Card */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-        >
-          <Card className="border-0 shadow-xl bg-white/90 backdrop-blur-sm">
-            <CardHeader className="border-b border-gray-100 bg-gradient-to-r from-white to-blue-50/50">
+      <Card className="border border-slate-200/80 bg-white shadow-sm">
+            <CardHeader className="border-b border-slate-100">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
                   <CardTitle className="text-xl font-semibold text-gray-900">
@@ -444,7 +377,7 @@ const InvestigationReports = () => {
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                     >
-                      <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg">
+                      <Button variant="brand">
                         <Download className="mr-2 h-4 w-4" />
                         Export Data
                       </Button>
@@ -561,7 +494,7 @@ const InvestigationReports = () => {
 
               {/* Table Container */}
               <div className="border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-                <div className="overflow-x-auto">
+                <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-gradient-to-r from-gray-50 to-blue-50/50 border-gray-200">
@@ -710,9 +643,9 @@ const InvestigationReports = () => {
                                         <p className="font-medium text-gray-900 text-sm">
                                           {item.investigationName}
                                         </p>
-                                        {item.instruction && (
+                                        {cleanInstruction(item.instruction) && (
                                           <p className="text-xs text-gray-600 mt-1 bg-white rounded px-2 py-1">
-                                            {item.instruction}
+                                            {cleanInstruction(item.instruction)}
                                           </p>
                                         )}
                                       </div>
@@ -755,9 +688,7 @@ const InvestigationReports = () => {
                 </div>
               </div>
             </CardContent>
-          </Card>
-        </motion.div>
-      </motion.div>
+      </Card>
     </div>
   );
 };

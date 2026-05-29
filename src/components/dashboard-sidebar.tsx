@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   BarChart3,
@@ -21,7 +22,11 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useUserProfile } from "@/components/user-profile-context";
-import { motion, AnimatePresence } from "framer-motion";
+import {
+  SIDEBAR_WIDTH_COLLAPSED,
+  SIDEBAR_WIDTH_EXPANDED,
+  useSidebar,
+} from "@/components/sidebar-layout-context";
 import {
   Tooltip,
   TooltipContent,
@@ -29,6 +34,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/AuthContext";
 
 // ✅ Define the route type so `badge` always exists
 type Route = {
@@ -41,43 +47,25 @@ type Route = {
 
 export function DashboardSidebar() {
   const pathname = usePathname();
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const { isCollapsed, toggleSidebar, isMobile } = useSidebar();
   const { userProfile } = useUserProfile();
   const [isMounted, setIsMounted] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
-
-    const savedState = localStorage.getItem("sidebarCollapsed");
-    if (savedState) {
-      setIsCollapsed(savedState === "true");
-    }
-
-    const handleResize = () => {
-      const mobile = window.innerWidth < 768;
-      setIsMobile(mobile);
-      if (mobile) {
-        setIsCollapsed(true);
-      }
-    };
-
-    handleResize();
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  const { logout } = useAuth();
+
   const handleLogout = () => {
-    localStorage.removeItem("userData");
-    localStorage.removeItem("token");
-    window.location.href = "/auth/login";
+    logout();
   };
 
-  const toggleSidebar = () => {
-    const newState = !isCollapsed;
-    setIsCollapsed(newState);
-    localStorage.setItem("sidebarCollapsed", String(newState));
-  };
+  const sidebarWidth = isMobile
+    ? SIDEBAR_WIDTH_EXPANDED
+    : isCollapsed
+      ? SIDEBAR_WIDTH_COLLAPSED
+      : SIDEBAR_WIDTH_EXPANDED;
 
   const routes: Route[] = [
     {
@@ -120,7 +108,7 @@ export function DashboardSidebar() {
       icon: Search,
       title: "Investigations",
       badge: null,
-      color: "from-teal-500 to-cyan-600",
+      color: "from-[#020E7C] to-[#3b82f6]",
     },
     {
       href: "/dashboard/medications",
@@ -142,65 +130,41 @@ export function DashboardSidebar() {
 
   return (
     <>
-      {/* Mobile overlay */}
-      <AnimatePresence>
-        {!isCollapsed && isMobile && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden"
-            onClick={toggleSidebar}
-          />
-        )}
-      </AnimatePresence>
+      {!isCollapsed && isMobile && (
+        <div
+          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm md:hidden"
+          onClick={toggleSidebar}
+          aria-hidden
+        />
+      )}
 
-      <motion.div
-        initial={false}
-        animate={{
-          width: isCollapsed ? (isMobile ? 0 : 80) : 300,
-          x: isCollapsed && isMobile ? -300 : 0,
-        }}
-        transition={{
-          duration: 0.3,
-          ease: "easeInOut",
-          type: "spring",
-          damping: 25,
-        }}
+      <aside
+        style={{ width: sidebarWidth }}
         className={cn(
-          "fixed top-0 left-0 h-screen border-r flex flex-col z-50",
-          "bg-gradient-to-b from-slate-50 via-white to-slate-50",
-          "shadow-2xl shadow-slate-200/50",
-          "border-slate-200/60",
-          isMobile && "md:relative"
+          "fixed top-0 left-0 z-50 flex h-screen flex-col border-r border-slate-200/60",
+          "bg-gradient-to-b from-slate-50 via-white to-slate-50 shadow-xl shadow-slate-200/40",
+          "transition-[width,transform] duration-200 ease-in-out",
+          isMobile && isCollapsed && "-translate-x-full",
+          isMobile && !isCollapsed && "translate-x-0"
         )}
       >
         {/* Header */}
         <div className="flex h-18 items-center border-b px-4 bg-gradient-to-r from-[#020E7C] via-[#1e40af] to-[#3b82f6]">
           <Link href="/dashboard" className="flex items-center gap-3 font-bold">
-            <motion.div
-              whileHover={{ rotate: 360, scale: 1.1 }}
-              transition={{ duration: 0.6 }}
-            >
-              <FileSpreadsheet className="h-7 w-7 text-white" />
-            </motion.div>
-            <AnimatePresence>
-              {!isCollapsed && (
-                <motion.div
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                  transition={{ duration: 0.3 }}
-                  className="text-white"
-                >
-                  <span className="text-lg">Partner&#39;s Portal</span>
-                  <div className="text-xs opacity-90">
-                    Healthcare Management
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+            {!isCollapsed ? (
+              <Image
+                src="/medfair.svg"
+                alt="MedFair"
+                width={120}
+                height={36}
+                className="brightness-0 invert"
+                priority
+              />
+            ) : (
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/15 text-sm font-bold text-white">
+                M
+              </div>
+            )}
           </Link>
 
           <Button
@@ -209,16 +173,11 @@ export function DashboardSidebar() {
             className="ml-auto text-white"
             onClick={toggleSidebar}
           >
-            <motion.div
-              animate={{ rotate: isCollapsed ? 180 : 0 }}
-              transition={{ duration: 0.3 }}
-            >
-              {isCollapsed ? (
-                <ChevronRight className="h-5 w-5" />
-              ) : (
-                <ChevronLeft className="h-5 w-5" />
-              )}
-            </motion.div>
+            {isCollapsed ? (
+              <ChevronRight className="h-5 w-5" />
+            ) : (
+              <ChevronLeft className="h-5 w-5" />
+            )}
           </Button>
         </div>
 
@@ -226,13 +185,8 @@ export function DashboardSidebar() {
         <div className="flex-1 overflow-auto py-6 px-3">
           <TooltipProvider delayDuration={100}>
             <nav className="grid items-start gap-2">
-              {routes.map((route, index) => (
-                <motion.div
-                  key={route.href}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.2, delay: index * 0.05 }}
-                >
+              {routes.map((route) => (
+                <div key={route.href}>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Link
@@ -272,7 +226,7 @@ export function DashboardSidebar() {
                       </TooltipContent>
                     )}
                   </Tooltip>
-                </motion.div>
+                </div>
               ))}
             </nav>
           </TooltipProvider>
@@ -281,11 +235,7 @@ export function DashboardSidebar() {
         {/* User */}
         <div className="mt-auto border-t border-slate-200/60 bg-gradient-to-r from-slate-50 to-white">
           <div className="p-4">
-            <motion.div
-              className="flex items-center gap-3 mb-4"
-              whileHover={{ scale: 1.02 }}
-              transition={{ type: "spring", damping: 25 }}
-            >
+            <div className="mb-4 flex items-center gap-3">
               <div className="relative">
                 <Avatar className="h-12 w-12 border-3 border-gradient-to-r from-[#020E7C] to-[#3b82f6] shadow-lg">
                   <AvatarFallback className="bg-gradient-to-r from-[#020E7C] to-[#1e40af] text-white text-lg font-bold">
@@ -296,36 +246,24 @@ export function DashboardSidebar() {
                 <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-white rounded-full shadow-sm" />
               </div>
 
-              <AnimatePresence>
-                {!isCollapsed && (
-                  <motion.div
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
-                    transition={{ duration: 0.3 }}
-                    className="flex-1 min-w-0"
-                  >
-                    <p className="text-sm font-bold text-slate-900 truncate">
-                      {userProfile?.firstName || "Partner"}
-                    </p>
-                    <div className="flex items-center gap-1 mt-1">
-                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                      <span className="text-xs text-green-600 font-medium">
-                        Online
-                      </span>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </motion.div>
+              {!isCollapsed && (
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-bold text-slate-900">
+                    {userProfile?.firstName || "Partner"}
+                  </p>
+                  <div className="mt-1 flex items-center gap-1">
+                    <div className="h-2 w-2 rounded-full bg-green-500" />
+                    <span className="text-xs font-medium text-green-600">
+                      Online
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
 
             <TooltipProvider delayDuration={100}>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <motion.div
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
                     <Button
                       variant="outline"
                       className={cn(
@@ -338,22 +276,11 @@ export function DashboardSidebar() {
                       size="sm"
                       onClick={handleLogout}
                     >
-                      <LogOut className="mr-2 cursor-pointer h-4 w-4" />
-                      <AnimatePresence>
-                        {!isCollapsed && (
-                          <motion.span
-                            initial={{ opacity: 0, width: 0 }}
-                            animate={{ opacity: 1, width: "auto" }}
-                            exit={{ opacity: 0, width: 0 }}
-                            transition={{ duration: 0.2 }}
-                            className="font-semibold cursor-pointer"
-                          >
-                            Log out
-                          </motion.span>
-                        )}
-                      </AnimatePresence>
+                      <LogOut className="mr-2 h-4 w-4" />
+                      {!isCollapsed && (
+                        <span className="font-semibold">Log out</span>
+                      )}
                     </Button>
-                  </motion.div>
                 </TooltipTrigger>
                 {isCollapsed && (
                   <TooltipContent
@@ -367,55 +294,21 @@ export function DashboardSidebar() {
             </TooltipProvider>
           </div>
         </div>
-      </motion.div>
+      </aside>
 
-      {/* Enhanced mobile menu button */}
-      {/* {isMobile && (
-        <motion.div
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.95 }}
-          className="fixed top-4 left-4 z-50 md:hidden"
-        >
+      {isMobile && (
+        <div className="fixed top-4 left-4 z-[60] md:hidden">
           <Button
             variant="ghost"
             size="icon"
-            className="bg-gradient-to-r from-[#020E7C] to-[#1e40af] text-white hover:from-[#1e40af] hover:to-[#3b82f6] shadow-lg shadow-[#020E7C]/30 backdrop-blur-sm border border-white/20"
+            className="border border-slate-200 bg-white text-[#020E7C] shadow-md hover:bg-slate-50"
             onClick={toggleSidebar}
+            aria-label="Toggle menu"
           >
-            <motion.div
-              animate={{ rotate: isCollapsed ? 0 : 180 }}
-              transition={{ duration: 0.3 }}
-            >
-              <Menu className="h-5 w-5" />
-            </motion.div>
+            <Menu className="h-5 w-5" />
           </Button>
-        </motion.div>
-      )} */}
-      {isMobile && (
-  <motion.div
-    initial={{ scale: 0 }}
-    animate={{ scale: 1 }}
-    whileHover={{ scale: 1.1 }}
-    whileTap={{ scale: 0.95 }}
-    className="fixed top-4 left-4 z-50 md:hidden"
-  >
-    <Button
-      variant="ghost"
-      size="icon"
-className="bg-transparent text-white/50 hover:bg-white/5 hover:text-white/70 backdrop-blur-sm border border-white/10"
-      onClick={toggleSidebar}
-    >
-      <motion.div
-        animate={{ rotate: isCollapsed ? 0 : 180 }}
-        transition={{ duration: 0.3 }}
-      >
-        <Menu className="h-5 w-5" />
-      </motion.div>
-    </Button>
-  </motion.div>
-)}
+        </div>
+      )}
     </>
   );
 }
