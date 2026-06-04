@@ -18,8 +18,8 @@ export function formatSpecialty(value: string): string {
 
 /**
  * Backend contract (OrganizationReportService):
- * - GP video calls: "pending" (active) | "completed" (ended)
- * - Specialist slots: "pending" | "completed" | "cancelled"
+ * - GP video calls: "pending" (no GP yet) | "completed" (GP joined) | "cancelled" (ended, no GP)
+ * - Specialist slots: "pending" (upcoming/in window) | "completed" (joined) | "cancelled" (no-show)
  */
 export type ConsultationStatus = "completed" | "pending" | "cancelled";
 
