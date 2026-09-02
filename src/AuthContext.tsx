@@ -22,6 +22,8 @@ export interface User {
   name: string;
   role?: string;
   mustChangePassword?: boolean;
+  /** Organization owner — can invite/delete other admins. */
+  superAdmin?: boolean;
   [key: string]: unknown;
 }
 
@@ -73,6 +75,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       role: orgAdminLoginDto.role,
       // Only force password change when API explicitly requests it (new partners).
       mustChangePassword: orgAdminLoginDto.mustChangePassword === true,
+      superAdmin: orgAdminLoginDto.superAdmin === true,
     };
 
     persistSession(authToken, userData);

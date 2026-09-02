@@ -109,6 +109,7 @@ export function ConsultationReports() {
   const [activeTab, setActiveTab] = useState("all");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [exporting, setExporting] = useState(false);
   const { user, token } = useAuth();
 
   const specialties = useMemo(
@@ -179,6 +180,61 @@ export function ConsultationReports() {
       setError("Failed to load consultations.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const downloadBlob = (blob: Blob, filename: string) => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const exportFilteredCsv = () => {
+    const header = ["Patient", "Doctor", "Specialty", "Date", "Status"];
+    const lines = [
+      header.join(","),
+      ...filteredConsultations.map((c) =>
+        [
+          c.patientName,
+          c.doctorName,
+          c.specialtyLabel || c.specialty,
+          c.date,
+          statusLabel(c.status),
+        ]
+          .map((v) => `"${String(v).replace(/"/g, '""')}"`)
+          .join(",")
+      ),
+    ];
+    const blob = new Blob(["\uFEFF" + lines.join("\n")], {
+      type: "text/csv;charset=utf-8;",
+    });
+    downloadBlob(blob, `consultations-${new Date().toISOString().slice(0, 10)}.csv`);
+  };
+
+  const exportExcelFromApi = async () => {
+    const organizationId = getOrganizationId(user);
+    if (!token || !organizationId) return;
+    setExporting(true);
+    try {
+      const res = await axios.get(
+        `${baseUrl}/api/organization/${organizationId}/consultations/export`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          responseType: "blob",
+        }
+      );
+      downloadBlob(
+        res.data,
+        `consultations-org-${organizationId}-${new Date().toISOString().slice(0, 10)}.xlsx`
+      );
+    } catch (err) {
+      console.error("Excel export failed:", err);
+      alert("Could not download Excel. Please try again.");
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -424,11 +480,11 @@ export function ConsultationReports() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => alert("Export CSV — coming soon")}>
-                  Export CSV
+                <DropdownMenuItem onClick={exportFilteredCsv}>
+                  Export filtered CSV (Excel)
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => alert("Export PDF — coming soon")}>
-                  Export PDF
+                <DropdownMenuItem onClick={exportExcelFromApi} disabled={exporting}>
+                  {exporting ? "Downloading…" : "Export full Excel (.xlsx)"}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
