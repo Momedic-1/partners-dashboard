@@ -217,7 +217,7 @@ export function SettingsPanel() {
                 minLength={8}
               />
             </div>
-            <Button type="submit" disabled={changingPassword} className="w-fit bg-[#020E7C]">
+            <Button type="submit" disabled={changingPassword} variant="brand" className="w-fit">
               {changingPassword ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               Update password
             </Button>
@@ -254,7 +254,9 @@ export function SettingsPanel() {
                   </div>
                   <div className="flex items-center gap-2">
                     {admin.superAdmin ? (
-                      <Badge className="bg-[#020E7C]">Super admin</Badge>
+                      <Badge className="border-transparent bg-[#020E7C] text-white hover:bg-[#020E7C]">
+                        Super admin
+                      </Badge>
                     ) : (
                       <Badge variant="secondary">Admin</Badge>
                     )}
@@ -313,7 +315,7 @@ export function SettingsPanel() {
                   minLength={8}
                 />
               </div>
-              <Button type="submit" disabled={adding} className="w-fit bg-[#020E7C]">
+              <Button type="submit" disabled={adding} variant="brand" className="w-fit">
                 {adding ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                 Invite admin
               </Button>
