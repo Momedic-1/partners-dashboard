@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { useEffect, useMemo, useState, Fragment } from "react";
 import {
   Table,
   TableBody,
@@ -36,12 +30,13 @@ import {
   Pill,
   Clock,
   FileText,
-  Shield,
-  RefreshCw,
   X,
+  ChevronLeft,
+  ChevronRight,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { motion, AnimatePresence } from "framer-motion";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -53,11 +48,13 @@ import axios from "@/lib/axios";
 import { baseUrl } from "@/env";
 import { useAuth } from "@/AuthContext";
 import { getOrganizationId } from "@/lib/organization";
-import { useEffect, useState } from "react";
 import { DashboardHeader } from "@/components/dashboard-header";
+import { SectionCard } from "@/components/dashboard/section-card";
+import { StatCard } from "@/components/dashboard/stat-card";
 
 interface Prescription {
   id: number;
+  orderId?: number | null;
   drugName: string;
   dosage: string;
   frequency: string;
@@ -70,6 +67,53 @@ interface Prescription {
   patientEmail: string;
 }
 
+interface PrescriptionGroup {
+  key: string;
+  orderId: number | null;
+  patientName: string;
+  patientEmail: string;
+  patientPhone: string;
+  doctorName: string;
+  createdAt: string;
+  drugs: Prescription[];
+}
+
+const PAGE_SIZE = 10;
+
+function groupPrescriptions(rows: Prescription[]): PrescriptionGroup[] {
+  const map = new Map<string, PrescriptionGroup>();
+
+  for (const row of rows) {
+    const key =
+      row.orderId != null
+        ? `note-${row.orderId}`
+        : `single-${row.id}`;
+
+    const existing = map.get(key);
+    if (existing) {
+      existing.drugs.push(row);
+      if (new Date(row.createdAt).getTime() > new Date(existing.createdAt).getTime()) {
+        existing.createdAt = row.createdAt;
+      }
+    } else {
+      map.set(key, {
+        key,
+        orderId: row.orderId ?? null,
+        patientName: row.patientName,
+        patientEmail: row.patientEmail,
+        patientPhone: row.patientPhone,
+        doctorName: row.doctorName,
+        createdAt: row.createdAt,
+        drugs: [row],
+      });
+    }
+  }
+
+  return Array.from(map.values()).sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
+}
+
 const PrescriptionReports = () => {
   const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -79,9 +123,21 @@ const PrescriptionReports = () => {
   const [error, setError] = useState("");
   const [hasAccess, setHasAccess] = useState(false);
   const [accessLoading, setAccessLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const { user, token } = useAuth();
 
-  const doctors = Array.from(new Set(prescriptions.map((p) => p.doctorName)));
+  const doctors = useMemo(
+    () => Array.from(new Set(prescriptions.map((p) => p.doctorName))).sort(),
+    [prescriptions]
+  );
+
+  const applyRows = (rows: Prescription[]) => {
+    const sorted = [...rows].sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+    setPrescriptions(sorted);
+  };
 
   const checkPrescriptionAccess = async () => {
     setAccessLoading(true);
@@ -103,23 +159,12 @@ const PrescriptionReports = () => {
     try {
       const response = await axios.get(
         `${baseUrl}/api/organization/${Number(organizationId)}/prescriptions`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
-
-      const sortedPrescriptions = response.data.sort(
-        (a: Prescription, b: Prescription) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      );
-
-      setPrescriptions(sortedPrescriptions);
+      applyRows(response.data || []);
       setHasAccess(true);
       setLoading(false);
     } catch (err: any) {
-      console.error("Error checking prescription access:", err);
       if (err.response?.status === 403 || err.response?.status === 401) {
         await requestPrescriptionAccess(Number(organizationId));
       } else {
@@ -143,11 +188,9 @@ const PrescriptionReports = () => {
           },
         }
       );
-
       await fetchPrescriptions();
       setHasAccess(true);
     } catch (err: any) {
-      console.error("Error requesting prescription access:", err);
       if (err.response?.status === 403 || err.response?.status === 401) {
         setHasAccess(false);
       } else {
@@ -177,21 +220,10 @@ const PrescriptionReports = () => {
     try {
       const response = await axios.get(
         `${baseUrl}/api/organization/${Number(organizationId)}/prescriptions`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
-
-      const sortedPrescriptions = response.data.sort(
-        (a: Prescription, b: Prescription) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      );
-
-      setPrescriptions(sortedPrescriptions);
-    } catch (err: any) {
-      console.error("Error fetching prescriptions:", err);
+      applyRows(response.data || []);
+    } catch {
       setError("Failed to load prescriptions.");
     } finally {
       setLoading(false);
@@ -202,16 +234,30 @@ const PrescriptionReports = () => {
     checkPrescriptionAccess();
   }, [user, token]);
 
-  const filteredPrescriptions = prescriptions.filter((p) => {
-    const matchSearch =
-      p.patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.doctorName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.drugName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.patientEmail.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredGroups = useMemo(() => {
+    const q = searchTerm.trim().toLowerCase();
+    const filtered = prescriptions.filter((p) => {
+      const matchSearch =
+        !q ||
+        p.patientName.toLowerCase().includes(q) ||
+        p.doctorName.toLowerCase().includes(q) ||
+        p.drugName.toLowerCase().includes(q) ||
+        (p.patientEmail || "").toLowerCase().includes(q);
+      const matchDoctor = doctorFilter === "all" || p.doctorName === doctorFilter;
+      return matchSearch && matchDoctor;
+    });
+    return groupPrescriptions(filtered);
+  }, [prescriptions, searchTerm, doctorFilter]);
 
-    const matchDoctor = doctorFilter === "all" || p.doctorName === doctorFilter;
-    return matchSearch && matchDoctor;
-  });
+  useEffect(() => {
+    setPage(1);
+  }, [searchTerm, doctorFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredGroups.length / PAGE_SIZE));
+  const pageGroups = filteredGroups.slice(
+    (page - 1) * PAGE_SIZE,
+    page * PAGE_SIZE
+  );
 
   const clearFilters = () => {
     setSearchTerm("");
@@ -220,88 +266,84 @@ const PrescriptionReports = () => {
 
   const hasActiveFilters = searchTerm !== "" || doctorFilter !== "all";
 
-  // Access loading component
+  const thisMonthDrugCount = prescriptions.filter((p) => {
+    const d = new Date(p.createdAt);
+    const now = new Date();
+    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+  }).length;
+
+  const exportCsv = () => {
+    const header = [
+      "Patient",
+      "Email",
+      "Phone",
+      "Doctor",
+      "Drug",
+      "Dosage",
+      "Frequency",
+      "Duration",
+      "Instructions",
+      "Date",
+      "Prescription group",
+    ];
+    const lines = [header.join(",")];
+    for (const group of filteredGroups) {
+      for (const drug of group.drugs) {
+        lines.push(
+          [
+            group.patientName,
+            group.patientEmail,
+            group.patientPhone,
+            group.doctorName,
+            drug.drugName,
+            drug.dosage,
+            drug.frequency,
+            drug.duration,
+            drug.instructions || "",
+            drug.createdAt,
+            group.orderId ?? group.key,
+          ]
+            .map((v) => `"${String(v ?? "").replace(/"/g, '""')}"`)
+            .join(",")
+        );
+      }
+    }
+    const blob = new Blob(["\uFEFF" + lines.join("\n")], {
+      type: "text/csv;charset=utf-8;",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `prescriptions-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   if (accessLoading) {
     return (
-      <div className="space-y-6">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.6, ease: "easeOut" }}
-          className="max-w-7xl mx-auto"
-        >
-          <Card className="border-0 shadow-xl bg-white/80 backdrop-blur-sm">
-            <CardContent className="flex flex-col items-center justify-center py-16 px-8">
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                className="mb-6"
-              >
-                <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                  <Shield className="w-8 h-8 text-white" />
-                </div>
-              </motion.div>
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-                className="text-center"
-              >
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                  Checking Access Permissions
-                </h3>
-                <p className="text-gray-600">
-                  Verifying your access to prescription data...
-                </p>
-              </motion.div>
-            </CardContent>
-          </Card>
-        </motion.div>
+      <div className="flex flex-col items-center justify-center py-20 text-slate-500">
+        <Loader2 className="mb-3 h-8 w-8 animate-spin text-[#020E7C]" />
+        Checking prescription access…
       </div>
     );
   }
 
-  // Access denied component
   if (!hasAccess) {
     return (
-      <div className="space-y-6">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.6, ease: "easeOut" }}
-          className="max-w-4xl mx-auto"
-        >
-          <Card className="border-0 shadow-xl bg-white/80 backdrop-blur-sm">
-            <CardHeader className="text-center pb-8 pt-12">
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-                className="mx-auto mb-6"
-              >
-                <div className="w-20 h-20 bg-gradient-to-r from-red-500 to-orange-600 rounded-full flex items-center justify-center">
-                  <Lock className="w-10 h-10 text-white" />
-                </div>
-              </motion.div>
-              <CardTitle className="text-2xl font-bold text-gray-900 mb-2">
-                Access Restricted
-              </CardTitle>
-              <CardDescription className="text-lg text-gray-600">
-                Prescription data access required
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="pb-12">
-              <Alert className="border-amber-200 bg-amber-50">
-                <AlertCircle className="h-5 w-5 text-amber-600" />
-                <AlertDescription className="text-amber-800 font-medium">
-                  This organization does not have access to client prescription
-                  data. Please contact your system administrator to request the
-                  necessary permissions.
-                </AlertDescription>
-              </Alert>
-            </CardContent>
-          </Card>
-        </motion.div>
+      <div className="mx-auto max-w-2xl space-y-6">
+        <DashboardHeader
+          heading="Medications"
+          text="View prescription records for your organization"
+        />
+        <SectionCard title="Access restricted">
+          <Alert className="border-amber-200 bg-amber-50">
+            <Lock className="h-5 w-5 text-amber-600" />
+            <AlertDescription className="text-amber-800">
+              This organization does not have access to prescription data.
+              Contact your MedFair administrator to enable it.
+            </AlertDescription>
+          </Alert>
+        </SectionCard>
       </div>
     );
   }
@@ -310,379 +352,298 @@ const PrescriptionReports = () => {
     <div className="space-y-6">
       <DashboardHeader
         heading="Medications"
-        text="View and export prescription records for your organization"
+        text="Prescriptions grouped by consult — multiple drugs stay together"
       />
+
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Card className="border-0 bg-[#020E7C] text-white shadow-sm">
-          <CardContent className="p-4">
-            <p className="text-sm text-white/80">Total</p>
-            <p className="text-2xl font-bold">{prescriptions.length}</p>
-          </CardContent>
-        </Card>
-        <Card className="border border-slate-200 bg-white shadow-sm">
-          <CardContent className="p-4">
-            <p className="text-sm text-slate-500">Doctors</p>
-            <p className="text-2xl font-bold text-slate-900">{doctors.length}</p>
-          </CardContent>
-        </Card>
-        <Card className="border-0 bg-emerald-600 text-white shadow-sm">
-          <CardContent className="p-4">
-            <p className="text-sm text-white/80">Filtered</p>
-            <p className="text-2xl font-bold">{filteredPrescriptions.length}</p>
-          </CardContent>
-        </Card>
-        <Card className="border-0 bg-amber-500 text-white shadow-sm">
-          <CardContent className="p-4">
-            <p className="text-sm text-white/80">This month</p>
-            <p className="text-2xl font-bold">
-              {prescriptions.filter((p) => new Date(p.createdAt).getMonth() === new Date().getMonth()).length}
-            </p>
-          </CardContent>
-        </Card>
+        <StatCard
+          label="Prescriptions"
+          value={filteredGroups.length}
+          icon={FileText}
+          variant="brand"
+        />
+        <StatCard
+          label="Drug lines"
+          value={prescriptions.length}
+          icon={Pill}
+          variant="neutral"
+        />
+        <StatCard
+          label="Doctors"
+          value={doctors.length}
+          icon={User}
+          variant="neutral"
+        />
+        <StatCard
+          label="This month"
+          value={thisMonthDrugCount}
+          icon={Calendar}
+          variant="success"
+        />
       </div>
 
-      <Card className="border border-slate-200/80 bg-white shadow-sm">
-            <CardHeader className="border-b border-slate-100">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div>
-                  <CardTitle className="text-xl font-semibold text-gray-900">
-                    Prescription Database
-                  </CardTitle>
-                  <CardDescription className="text-gray-600 mt-1">
-                    Search, filter, and export prescription records
-                  </CardDescription>
-                </div>
+      <SectionCard
+        title="Prescription database"
+        description="One row per consult. Expand to see every drug in that prescription."
+        actions={
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="brand" size="sm">
+                <Download className="mr-2 h-4 w-4" />
+                Export
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={exportCsv}>
+                Export filtered CSV
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        }
+      >
+        <div className="mb-4 flex flex-col gap-3 sm:flex-row">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <Input
+              placeholder="Search patient, doctor, drug, or email…"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowFilters((v) => !v)}
+            >
+              <Filter className="mr-2 h-4 w-4" />
+              Filters
+            </Button>
+            {hasActiveFilters && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearFilters}
+                className="text-red-600"
+              >
+                <X className="mr-1 h-4 w-4" />
+                Clear
+              </Button>
+            )}
+          </div>
+        </div>
 
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <motion.div
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                    >
-                      <Button variant="brand">
-                        <Download className="mr-2 h-4 w-4" />
-                        Export Data
-                      </Button>
-                    </motion.div>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48">
-                    <DropdownMenuItem
-                      onClick={() => alert("Download CSV")}
-                      className="cursor-pointer"
-                    >
-                      <FileText className="mr-2 h-4 w-4" />
-                      Export as CSV
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => alert("Download PDF")}
-                      className="cursor-pointer"
-                    >
-                      <FileText className="mr-2 h-4 w-4" />
-                      Export as PDF
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            </CardHeader>
+        {showFilters && (
+          <div className="mb-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
+            <label className="mb-2 block text-sm font-medium text-slate-700">
+              Doctor
+            </label>
+            <Select value={doctorFilter} onValueChange={setDoctorFilter}>
+              <SelectTrigger className="max-w-sm bg-white">
+                <SelectValue placeholder="All doctors" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All doctors</SelectItem>
+                {doctors.map((doctor) => (
+                  <SelectItem key={doctor} value={doctor}>
+                    {doctor}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
 
-            <CardContent className="p-6">
-              {/* Search and Filter Controls */}
-              <div className="flex flex-col sm:flex-row gap-4 mb-6">
-                <div className="flex-1">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                    <Input
-                      placeholder="Search by patient, doctor, drug name, or email..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10 bg-white/70 border-gray-200 focus:border-blue-300 focus:ring-2 focus:ring-blue-100 transition-all duration-200"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex gap-2">
-                  <motion.div
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    <Button
-                      variant="outline"
-                      onClick={() => setShowFilters(!showFilters)}
-                      className="bg-white/70 border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-all duration-200"
-                    >
-                      <Filter className="h-4 w-4 mr-2" />
-                      Filters
-                    </Button>
-                  </motion.div>
-
-                  {hasActiveFilters && (
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                    >
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={clearFilters}
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                      >
-                        <X className="h-4 w-4 mr-1" />
-                        Clear
-                      </Button>
-                    </motion.div>
-                  )}
-                </div>
-              </div>
-
-              {/* Filter Panel */}
-              <AnimatePresence>
-                {showFilters && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, height: "auto", scale: 1 }}
-                    exit={{ opacity: 0, height: 0, scale: 0.95 }}
-                    transition={{ duration: 0.3, ease: "easeInOut" }}
-                    className="mb-6 p-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200/50"
-                  >
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                          <User className="h-4 w-4" />
-                          Filter by Doctor
-                        </label>
-                        <Select
-                          value={doctorFilter}
-                          onValueChange={setDoctorFilter}
-                        >
-                          <SelectTrigger className="bg-white border-gray-200 focus:border-blue-300">
-                            <SelectValue placeholder="Select doctor..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="all">All Doctors</SelectItem>
-                            {doctors.map((doctor) => (
-                              <SelectItem key={doctor} value={doctor}>
-                                {doctor}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              {/* Table Container */}
-              <div className="border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-                <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="bg-gradient-to-r from-gray-50 to-blue-50/50 border-gray-200">
-                        <TableHead className="font-semibold text-gray-700">
-                          <div className="flex items-center gap-2">
-                            <User className="h-4 w-4" />
-                            Patient
-                          </div>
-                        </TableHead>
-                        <TableHead className="font-semibold text-gray-700">
-                          <div className="flex items-center gap-2">
-                            <User className="h-4 w-4" />
-                            Doctor
-                          </div>
-                        </TableHead>
-                        <TableHead className="font-semibold text-gray-700">
-                          <div className="flex items-center gap-2">
-                            <Pill className="h-4 w-4" />
-                            Medication
-                          </div>
-                        </TableHead>
-                        <TableHead className="font-semibold text-gray-700">
-                          Dosage
-                        </TableHead>
-                        <TableHead className="font-semibold text-gray-700">
-                          <div className="flex items-center gap-2">
-                            <Clock className="h-4 w-4" />
-                            Frequency
-                          </div>
-                        </TableHead>
-                        <TableHead className="font-semibold text-gray-700">
-                          Duration
-                        </TableHead>
-                        <TableHead className="font-semibold text-gray-700">
-                          <div className="flex items-center gap-2">
-                            <Calendar className="h-4 w-4" />
-                            Date
-                          </div>
-                        </TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {loading ? (
-                        <TableRow>
-                          <TableCell colSpan={7} className="text-center py-12">
-                            <motion.div
-                              initial={{ opacity: 0 }}
-                              animate={{ opacity: 1 }}
-                              className="flex flex-col items-center gap-4"
-                            >
-                              <motion.div
-                                animate={{ rotate: 360 }}
-                                transition={{
-                                  duration: 1,
-                                  repeat: Infinity,
-                                  ease: "linear",
-                                }}
-                              >
-                                <Loader2 className="w-8 h-8 text-blue-500" />
-                              </motion.div>
-                              <div className="text-center">
-                                <p className="text-lg font-medium text-gray-700">
-                                  Loading Prescriptions
-                                </p>
-                                <p className="text-gray-500">
-                                  Please wait while we fetch the data...
-                                </p>
-                              </div>
-                            </motion.div>
-                          </TableCell>
-                        </TableRow>
-                      ) : error ? (
-                        <TableRow>
-                          <TableCell colSpan={7} className="text-center py-12">
-                            <motion.div
-                              initial={{ opacity: 0, scale: 0.9 }}
-                              animate={{ opacity: 1, scale: 1 }}
-                              className="flex flex-col items-center gap-4 text-red-500"
-                            >
-                              <AlertCircle className="w-12 h-12" />
-                              <div className="text-center">
-                                <p className="text-lg font-medium">
-                                  Error Loading Data
-                                </p>
-                                <p className="text-red-400">{error}</p>
-                              </div>
-                            </motion.div>
-                          </TableCell>
-                        </TableRow>
-                      ) : filteredPrescriptions.length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={7} className="text-center py-12">
-                            <motion.div
-                              initial={{ opacity: 0, scale: 0.9 }}
-                              animate={{ opacity: 1, scale: 1 }}
-                              className="flex flex-col items-center gap-4 text-gray-400"
-                            >
-                              <FileText className="w-12 h-12" />
-                              <div className="text-center">
-                                <p className="text-lg font-medium text-gray-600">
-                                  No Prescriptions Found
-                                </p>
-                                <p>
-                                  Try adjusting your search criteria or filters
-                                </p>
-                              </div>
-                            </motion.div>
-                          </TableCell>
-                        </TableRow>
-                      ) : (
-                        filteredPrescriptions.map((prescription, index) => (
-                          <motion.tr
-                            key={prescription.id}
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: index * 0.05 }}
-                            className="hover:bg-blue-50/50 transition-colors duration-200 border-b border-gray-100"
+        <div className="overflow-hidden rounded-lg border border-slate-200">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-slate-50/80 hover:bg-slate-50/80">
+                <TableHead className="w-10" />
+                <TableHead>Patient</TableHead>
+                <TableHead className="hidden md:table-cell">Doctor</TableHead>
+                <TableHead>Medications</TableHead>
+                <TableHead className="hidden sm:table-cell">Date</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="py-16 text-center">
+                    <Loader2 className="mx-auto h-8 w-8 animate-spin text-[#020E7C]" />
+                    <p className="mt-2 text-sm text-slate-500">
+                      Loading prescriptions…
+                    </p>
+                  </TableCell>
+                </TableRow>
+              ) : error ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="py-12 text-center text-red-600">
+                    <AlertCircle className="mx-auto mb-2 h-8 w-8" />
+                    {error}
+                  </TableCell>
+                </TableRow>
+              ) : pageGroups.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="py-12 text-center text-slate-500">
+                    <FileText className="mx-auto mb-2 h-8 w-8 text-slate-300" />
+                    No prescriptions found
+                  </TableCell>
+                </TableRow>
+              ) : (
+                pageGroups.map((group) => {
+                  const open = !!expanded[group.key];
+                  return (
+                    <Fragment key={group.key}>
+                      <TableRow className="border-slate-100 hover:bg-slate-50/80">
+                        <TableCell className="pr-0">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0"
+                            onClick={() =>
+                              setExpanded((prev) => ({
+                                ...prev,
+                                [group.key]: !prev[group.key],
+                              }))
+                            }
+                            aria-label={open ? "Collapse drugs" : "Expand drugs"}
                           >
-                            <TableCell className="py-4">
-                              <div className="space-y-1">
-                                <p className="font-medium text-gray-900">
-                                  {prescription.patientName}
-                                </p>
-                                <p className="text-xs text-blue-600 font-medium">
-                                  {prescription.patientEmail}
-                                </p>
-                                <p className="text-xs text-gray-500">
-                                  {prescription.patientPhone}
-                                </p>
-                              </div>
-                            </TableCell>
-                            <TableCell className="py-4">
-                              <div className="flex items-center gap-2">
-                                <div className="w-8 h-8 bg-gradient-to-r from-green-400 to-green-500 rounded-full flex items-center justify-center">
-                                  <User className="w-4 h-4 text-white" />
+                            {open ? (
+                              <ChevronUp className="h-4 w-4" />
+                            ) : (
+                              <ChevronDown className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </TableCell>
+                        <TableCell>
+                          <p className="font-medium text-slate-900">
+                            {group.patientName}
+                          </p>
+                          <p className="text-xs text-slate-500">
+                            {group.patientEmail}
+                          </p>
+                          <p className="text-xs text-slate-500 md:hidden">
+                            {group.doctorName}
+                          </p>
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell">
+                          <div className="flex items-center gap-2">
+                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
+                              <User className="h-4 w-4" />
+                            </div>
+                            <span className="text-slate-700">
+                              {group.doctorName}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Badge className="bg-[#020E7C] text-white hover:bg-[#020E7C]">
+                              {group.drugs.length} drug
+                              {group.drugs.length === 1 ? "" : "s"}
+                            </Badge>
+                            <span className="truncate text-sm text-slate-700">
+                              {group.drugs.map((d) => d.drugName).join(", ")}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="hidden sm:table-cell text-sm text-slate-600">
+                          <div className="flex items-center gap-1">
+                            <Calendar className="h-3.5 w-3.5 text-slate-400" />
+                            {new Date(group.createdAt).toLocaleDateString()}
+                          </div>
+                          <p className="text-xs text-slate-500">
+                            {new Date(group.createdAt).toLocaleTimeString()}
+                          </p>
+                        </TableCell>
+                      </TableRow>
+                      {open &&
+                        group.drugs.map((drug) => (
+                          <TableRow
+                            key={`${group.key}-${drug.id}`}
+                            className="bg-slate-50/60 border-slate-100"
+                          >
+                            <TableCell />
+                            <TableCell colSpan={4} className="py-3">
+                              <div className="grid gap-2 rounded-lg border border-slate-200 bg-white p-3 sm:grid-cols-4">
+                                <div className="sm:col-span-2">
+                                  <p className="flex items-center gap-1 text-xs font-medium uppercase tracking-wide text-slate-500">
+                                    <Pill className="h-3 w-3" /> Drug
+                                  </p>
+                                  <p className="font-medium text-slate-900">
+                                    {drug.drugName}
+                                  </p>
+                                  {drug.instructions ? (
+                                    <p className="mt-1 text-xs text-slate-500">
+                                      {drug.instructions}
+                                    </p>
+                                  ) : null}
                                 </div>
-                                <span className="font-medium text-gray-700">
-                                  {prescription.doctorName}
-                                </span>
-                              </div>
-                            </TableCell>
-                            <TableCell className="py-4">
-                              <div className="space-y-2">
-                                <div className="flex items-center gap-2">
-                                  <Pill className="w-4 h-4 text-purple-500" />
-                                  <p className="font-medium text-gray-900">
-                                    {prescription.drugName}
+                                <div>
+                                  <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                                    Dosage
+                                  </p>
+                                  <Badge variant="secondary">{drug.dosage}</Badge>
+                                </div>
+                                <div>
+                                  <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                                    Frequency / Duration
+                                  </p>
+                                  <p className="flex items-center gap-1 text-sm text-slate-700">
+                                    <Clock className="h-3.5 w-3.5 text-amber-500" />
+                                    {drug.frequency}
+                                  </p>
+                                  <p className="text-sm text-slate-600">
+                                    {drug.duration} day
+                                    {String(drug.duration) === "1" ? "" : "s"}
                                   </p>
                                 </div>
-                                {prescription.instructions && (
-                                  <p className="text-xs text-gray-600 bg-gray-50 rounded px-2 py-1">
-                                    {prescription.instructions}
-                                  </p>
-                                )}
                               </div>
                             </TableCell>
-                            <TableCell className="py-4">
-                              <Badge
-                                variant="secondary"
-                                className="bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800 border-blue-200"
-                              >
-                                {prescription.dosage}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="py-4">
-                              <div className="flex items-center gap-2">
-                                <Clock className="w-4 h-4 text-amber-500" />
-                                <span className="text-gray-700">
-                                  {prescription.frequency}
-                                </span>
-                              </div>
-                            </TableCell>
-                            <TableCell className="py-4">
-                              <Badge
-                                variant="outline"
-                                className="w-[80px] border-green-200 text-green-700 px-4 bg-green-50"
-                              >
-                                {prescription.duration}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="py-4">
-                              <div className="space-y-1">
-                                <div className="flex items-center gap-2">
-                                  <Calendar className="w-4 h-4 text-indigo-500" />
-                                  <p className="font-medium text-gray-700">
-                                    {new Date(
-                                      prescription.createdAt
-                                    ).toLocaleDateString()}
-                                  </p>
-                                </div>
-                                <p className="text-xs text-gray-500">
-                                  {new Date(
-                                    prescription.createdAt
-                                  ).toLocaleTimeString()}
-                                </p>
-                              </div>
-                            </TableCell>
-                          </motion.tr>
-                        ))
-                      )}
-                    </TableBody>
-                  </Table>
-                </div>
-              </div>
-            </CardContent>
-      </Card>
+                          </TableRow>
+                        ))}
+                    </Fragment>
+                  );
+                })
+              )}
+            </TableBody>
+          </Table>
+        </div>
+
+        {filteredGroups.length > 0 && (
+          <div className="mt-4 flex flex-col gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-slate-500">
+              Showing {(page - 1) * PAGE_SIZE + 1}–
+              {Math.min(page * PAGE_SIZE, filteredGroups.length)} of{" "}
+              {filteredGroups.length} prescriptions
+            </p>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page <= 1}
+                onClick={() => setPage((p) => p - 1)}
+              >
+                <ChevronLeft className="h-4 w-4" />
+                Previous
+              </Button>
+              <span className="text-sm text-slate-600">
+                Page {page} of {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page >= totalPages}
+                onClick={() => setPage((p) => p + 1)}
+              >
+                Next
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
+      </SectionCard>
     </div>
   );
 };

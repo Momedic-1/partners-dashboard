@@ -27,7 +27,10 @@ interface Consultation {
 interface ConsultationResponse {
   content: Consultation[];
   totalPages: number;
+  totalElements?: number;
 }
+
+type ConsultRange = "today" | "7d";
 
 export function RecentUsers() {
   const [consultations, setConsultations] = useState<Consultation[]>([]);
@@ -35,6 +38,8 @@ export function RecentUsers() {
   const [error, setError] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [totalElements, setTotalElements] = useState(0);
+  const [range, setRange] = useState<ConsultRange>("today");
   const pageSize = 10;
   const { user, token } = useAuth();
 
@@ -67,19 +72,20 @@ export function RecentUsers() {
       const response = await axios.get<ConsultationResponse>(
         `${baseUrl}/api/organization/${orgId}/consultations/basic`,
         {
-          params: { page: currentPage - 1, size: pageSize },
+          params: { page: currentPage - 1, size: pageSize, range },
           headers: { Authorization: `Bearer ${token}` },
         }
       );
 
-      const sorted = [...response.data.content].sort(
+      const sorted = [...(response.data.content || [])].sort(
         (a, b) =>
           new Date(b.consultationDate).getTime() -
           new Date(a.consultationDate).getTime()
       );
 
       setConsultations(sorted);
-      setTotalPages(response.data.totalPages);
+      setTotalPages(Math.max(1, response.data.totalPages || 1));
+      setTotalElements(response.data.totalElements ?? sorted.length);
     } catch (err: unknown) {
       const status = (err as { response?: { status?: number } })?.response
         ?.status;
@@ -96,8 +102,12 @@ export function RecentUsers() {
   };
 
   useEffect(() => {
+    setCurrentPage(1);
+  }, [range]);
+
+  useEffect(() => {
     fetchConsultations();
-  }, [currentPage, user, token]);
+  }, [currentPage, range, user, token]);
 
   const orgSince = user?.createdAt as string | undefined;
   const pageRevenue = consultations.reduce((s, c) => s + c.amountCharged, 0);
@@ -105,16 +115,48 @@ export function RecentUsers() {
   return (
     <SectionCard
       title="Recent consultations"
-      description="Latest consultation activity for your members"
+      description={
+        range === "today"
+          ? "Consultations from today"
+          : "Consultations from the last 7 days"
+      }
       actions={
-        orgSince ? (
-          <div className="text-right text-sm text-slate-500">
-            <p>Organization since</p>
-            <p className="font-medium text-slate-700">
-              {new Date(orgSince).toLocaleDateString()}
-            </p>
+        <div className="flex flex-col items-end gap-2 sm:flex-row sm:items-center">
+          <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-0.5">
+            <button
+              type="button"
+              onClick={() => setRange("today")}
+              className={cn(
+                "rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+                range === "today"
+                  ? "bg-[#020E7C] text-white shadow-sm"
+                  : "text-slate-600 hover:text-slate-900"
+              )}
+            >
+              Today
+            </button>
+            <button
+              type="button"
+              onClick={() => setRange("7d")}
+              className={cn(
+                "rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+                range === "7d"
+                  ? "bg-[#020E7C] text-white shadow-sm"
+                  : "text-slate-600 hover:text-slate-900"
+              )}
+            >
+              Last 7 days
+            </button>
           </div>
-        ) : undefined
+          {orgSince ? (
+            <div className="hidden text-right text-sm text-slate-500 lg:block">
+              <p>Organization since</p>
+              <p className="font-medium text-slate-700">
+                {new Date(orgSince).toLocaleDateString()}
+              </p>
+            </div>
+          ) : null}
+        </div>
       }
       noPadding
       contentClassName="min-w-0"
@@ -128,7 +170,7 @@ export function RecentUsers() {
         <p className="py-8 text-center text-sm text-red-600">{error}</p>
       ) : consultations.length === 0 ? (
         <p className="py-12 text-center text-sm text-slate-500">
-          No consultations found
+          No consultations found for {range === "today" ? "today" : "the last 7 days"}
         </p>
       ) : (
         <>
@@ -186,6 +228,9 @@ export function RecentUsers() {
                 Page total:{" "}
                 <span className="font-semibold text-slate-900">
                   ₦{pageRevenue.toLocaleString()}
+                </span>
+                <span className="ml-2 text-slate-400">
+                  · {totalElements} in range
                 </span>
               </p>
             </div>

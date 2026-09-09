@@ -29,12 +29,13 @@ import {
   FileText,
   Stethoscope,
   Activity,
-  Users,
   RefreshCw,
   X,
   CheckCircle,
   XCircle,
   PlayCircle,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -110,6 +111,8 @@ export function ConsultationReports() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [exporting, setExporting] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
   const { user, token } = useAuth();
 
   const specialties = useMemo(
@@ -242,29 +245,74 @@ export function ConsultationReports() {
     fetchConsultations();
   }, [user, token]);
 
-  const filteredConsultations = consultations.filter((c) => {
-    const q = searchTerm.trim().toLowerCase();
-    const matchSearch =
-      !q ||
-      c.patientName.toLowerCase().includes(q) ||
-      c.doctorName.toLowerCase().includes(q) ||
-      c.specialty.toLowerCase().includes(q) ||
-      c.specialtyLabel.toLowerCase().includes(q);
+  const filteredConsultations = useMemo(
+    () =>
+      consultations.filter((c) => {
+        const q = searchTerm.trim().toLowerCase();
+        const matchSearch =
+          !q ||
+          c.patientName.toLowerCase().includes(q) ||
+          c.doctorName.toLowerCase().includes(q) ||
+          c.specialty.toLowerCase().includes(q) ||
+          c.specialtyLabel.toLowerCase().includes(q);
 
-    const matchStatus = statusFilter === "all" || c.status === statusFilter;
-    const matchSpecialty =
-      specialtyFilter === "all" || c.specialty === specialtyFilter;
-    const matchTab = activeTab === "all" || c.status === activeTab;
-    const matchDate = matchesDateFilter(
-      c.date,
+        const matchStatus = statusFilter === "all" || c.status === statusFilter;
+        const matchSpecialty =
+          specialtyFilter === "all" || c.specialty === specialtyFilter;
+        const matchTab = activeTab === "all" || c.status === activeTab;
+        const matchDate = matchesDateFilter(
+          c.date,
+          dateFilterMode,
+          filterDay,
+          filterMonth,
+          filterYear
+        );
+
+        return (
+          matchSearch && matchStatus && matchSpecialty && matchTab && matchDate
+        );
+      }),
+    [
+      consultations,
+      searchTerm,
+      statusFilter,
+      specialtyFilter,
+      activeTab,
       dateFilterMode,
       filterDay,
       filterMonth,
-      filterYear
-    );
+      filterYear,
+    ]
+  );
 
-    return matchSearch && matchStatus && matchSpecialty && matchTab && matchDate;
-  });
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredConsultations.length / pageSize)
+  );
+
+  const pageConsultations = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredConsultations.slice(start, start + pageSize);
+  }, [filteredConsultations, currentPage, pageSize]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [
+    searchTerm,
+    statusFilter,
+    specialtyFilter,
+    activeTab,
+    dateFilterMode,
+    filterDay,
+    filterMonth,
+    filterYear,
+  ]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
 
   const getInitials = (name: string) =>
     name
@@ -566,7 +614,7 @@ export function ConsultationReports() {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    filteredConsultations.map((consultation) => (
+                    pageConsultations.map((consultation) => (
                       <TableRow
                         key={consultation.id}
                         className="border-slate-100 hover:bg-slate-50/80"
@@ -623,6 +671,61 @@ export function ConsultationReports() {
                 </TableBody>
               </Table>
             </div>
+
+            {!loading && !error && filteredConsultations.length > 0 && (
+              <div className="mt-4 flex flex-col items-center justify-between gap-3 sm:flex-row">
+                <p className="text-sm text-slate-500">
+                  Showing{" "}
+                  <span className="font-medium text-slate-700">
+                    {(currentPage - 1) * pageSize + 1}–
+                    {Math.min(
+                      currentPage * pageSize,
+                      filteredConsultations.length
+                    )}
+                  </span>{" "}
+                  of {filteredConsultations.length}
+                </p>
+                {totalPages > 1 && (
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={currentPage === 1}
+                      onClick={() => setCurrentPage((p) => p - 1)}
+                      className="h-8"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    {Array.from({ length: totalPages }, (_, i) => i + 1)
+                      .filter((p) => {
+                        const left = Math.max(1, currentPage - 2);
+                        const right = Math.min(totalPages, currentPage + 2);
+                        return p >= left && p <= right;
+                      })
+                      .map((p) => (
+                        <Button
+                          key={p}
+                          variant={p === currentPage ? "brand" : "outline"}
+                          size="sm"
+                          onClick={() => setCurrentPage(p)}
+                          className="h-8 w-8 p-0"
+                        >
+                          {p}
+                        </Button>
+                      ))}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={currentPage === totalPages}
+                      onClick={() => setCurrentPage((p) => p + 1)}
+                      className="h-8"
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
           </TabsContent>
         </Tabs>
       </SectionCard>
