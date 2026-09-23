@@ -2,6 +2,7 @@
 
 import { DashboardHeader } from "@/components/dashboard-header";
 import { UserManagement } from "@/components/user-management";
+import { PendingMembers } from "@/components/pending-members";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UploadExcel } from "@/components/upload-excel";
 import { CreateUserForm } from "@/components/create-user-form";
@@ -23,6 +24,12 @@ export default function UsersPage() {
             All users
           </TabsTrigger>
           <TabsTrigger
+            value="pending"
+            className="rounded-md data-[state=active]:bg-[#020E7C] data-[state=active]:text-white"
+          >
+            Pending
+          </TabsTrigger>
+          <TabsTrigger
             value="upload"
             className="rounded-md data-[state=active]:bg-[#020E7C] data-[state=active]:text-white"
           >
@@ -37,6 +44,9 @@ export default function UsersPage() {
         </TabsList>
         <TabsContent value="users" className="space-y-4">
           <UserManagement />
+        </TabsContent>
+        <TabsContent value="pending" className="space-y-4">
+          <PendingMembers />
         </TabsContent>
         <TabsContent value="upload" className="space-y-4">
           <UploadExcel />
